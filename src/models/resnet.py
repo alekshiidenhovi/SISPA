@@ -21,19 +21,14 @@ class ResNet(torch.nn.Module):
             *[ResnetBlock(64, 128) for _ in range(num_blocks)]
         )
 
-        self.resnet_blocks4 = torch.nn.Sequential(
-            *[ResnetBlock(128, 256) for _ in range(num_blocks)]
-        )
-
         self.avg_pool = torch.nn.AdaptiveAvgPool2d(1)
-        self.linear = torch.nn.Linear(256, hidden_dim)
+        self.linear = torch.nn.Linear(128, hidden_dim)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         out = self.conv7(x)
         out = self.resnet_blocks1(out)
         out = self.resnet_blocks2(out)
         out = self.resnet_blocks3(out)
-        out = self.resnet_blocks4(out)
         out = self.avg_pool(out)
         out = rearrange(
             out,
