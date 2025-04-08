@@ -4,10 +4,7 @@ import multiprocessing
 from accelerate.utils.dataclasses import PrecisionType
 from common.tracking import init_wandb_api_client
 
-BASE_MODEL = T.Literal["google/vit-base-patch16-224"]
 ACCELERATOR = T.Literal["gpu", "cpu", "tpu"]
-FINETUNING_MODE = T.Literal["full", "final", "final+lora"]
-BENCHMARK_TYPE = T.Literal["vector_index", "full_rerank"]
 
 
 class DatasetConfig(BaseModel):
