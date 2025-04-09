@@ -5,7 +5,7 @@ from einops import rearrange
 
 
 class ResNet(torch.nn.Module):
-    def __init__(self, num_blocks: int, hidden_dim: int):
+    def __init__(self, num_blocks: int, embedding_dim: int):
         super().__init__()
         self.conv7 = Conv7(3, 32)
 
@@ -22,7 +22,7 @@ class ResNet(torch.nn.Module):
         )
 
         self.avg_pool = torch.nn.AdaptiveAvgPool2d(1)
-        self.linear = torch.nn.Linear(128, hidden_dim)
+        self.linear = torch.nn.Linear(128, embedding_dim)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         out = self.conv7(x)
