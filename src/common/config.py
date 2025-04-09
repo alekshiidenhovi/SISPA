@@ -46,6 +46,21 @@ class DatasetConfig(BaseModel):
         default=(0.95, 0.025, 0.025),
         description="Train, validation and test split proportions",
     )
+    num_shards: int = Field(
+        default=10,
+        ge=1,
+        description="Number of shards for SISA training",
+    )
+    target_class_ratio: float = Field(
+        default=0.5,
+        ge=0.0,
+        le=1.0,
+        description="Proportion of samples from target class in each shard",
+    )
+    embeddings_dir: str = Field(
+        default="./.embeddings/",
+        description="Directory to save precomputed embeddings",
+    )
 
     @field_validator("train_val_test_split")
     def validate_split_sum(cls, v):
