@@ -2,10 +2,6 @@ import torch
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 from accelerate import Accelerator
-import logging
-
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
 
 
 def compute_embeddings(
