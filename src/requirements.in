@@ -1,6 +1,7 @@
 accelerate==1.6.0
 click==8.1.8
 einops==0.8.1
+h5py==3.13.0
 matplotlib==3.10.1
 pandas==2.2.3
 pydantic==2.10.6

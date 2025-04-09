@@ -52,6 +52,8 @@ gitdb==4.0.12
     # via gitpython
 gitpython==3.1.44
     # via wandb
+h5py==3.13.0
+    # via -r requirements.in
 huggingface-hub==0.30.2
     # via accelerate
 idna==3.10
@@ -101,6 +103,7 @@ numpy==2.2.4
     # via
     #   accelerate
     #   contourpy
+    #   h5py
     #   matplotlib
     #   pandas
     #   torchvision
