@@ -37,14 +37,14 @@ class SISAEmbeddingStorage:
         """Internal helper method to get the name of a shard group."""
         return f"{self.base_dir}/shard_{shard_idx}"
 
-    def _get_datapoint_path(self, shard_idx: int, datapoint_id: int) -> str:
+    def _get_datapoint_path(self, shard_idx: int, datapoint_id: str) -> str:
         """Internal helper method to get the path of a datapoint."""
         return f"{self._get_shard_group_name(shard_idx)}/{datapoint_id}"
 
     def store_embeddings(
         self,
         shard_idx: int,
-        datapoint_ids: T.List[int],
+        datapoint_ids: T.List[str],
         embeddings: torch.Tensor,
     ):
         """Store embeddings for a specific shard and datapoints.
@@ -53,7 +53,7 @@ class SISAEmbeddingStorage:
         ----------
         shard_idx : int
             Index of the shard
-        datapoint_ids : list[int]
+        datapoint_ids : list[str]
             ID of the datapoint
         embedding : torch.Tensor
             Embedding tensor to store
@@ -72,7 +72,9 @@ class SISAEmbeddingStorage:
         if shard_group not in self.file:
             self.file.create_group(shard_group)
 
-        for datapoint_id, embedding in zip(datapoint_ids, embeddings):
+        for idx in range(len(datapoint_ids)):
+            datapoint_id = datapoint_ids[idx]
+            embedding = embeddings[idx]
             datapoint_path = self._get_datapoint_path(shard_idx, datapoint_id)
             if datapoint_path in self.file:
                 del self.file[datapoint_path]
@@ -112,7 +114,7 @@ class SISAEmbeddingStorage:
         return embedding_dict
 
     def retrieve_embedding_by_id(
-        self, shard_idx: int, datapoint_id: int
+        self, shard_idx: int, datapoint_id: str
     ) -> torch.Tensor:
         """Retrieve an embedding by its ID.
 
@@ -120,7 +122,7 @@ class SISAEmbeddingStorage:
         ----------
         shard_idx : int
             Index of the shard
-        datapoint_id : int
+        datapoint_id : str
             ID of the datapoint
 
         Returns
@@ -150,14 +152,14 @@ class SISAEmbeddingStorage:
             return True
         return False
 
-    def remove_embedding(self, shard_idx: int, datapoint_id: int) -> bool:
+    def remove_embedding(self, shard_idx: int, datapoint_id: str) -> bool:
         """Remove an embedding from storage.
 
         Parameters
         ----------
         shard_idx : int
             Index of the shard
-        datapoint_id : int
+        datapoint_id : str
             ID of the datapoint
 
         Returns
