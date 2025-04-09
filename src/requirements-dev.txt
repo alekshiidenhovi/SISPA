@@ -70,6 +70,8 @@ jedi==0.19.2
     # via ipython
 jinja2==3.1.6
     # via torch
+joblib==1.4.2
+    # via scikit-learn
 jsonschema==4.23.0
     # via nbformat
 jsonschema-specifications==2024.10.1
@@ -106,6 +108,8 @@ numpy==2.2.4
     #   h5py
     #   matplotlib
     #   pandas
+    #   scikit-learn
+    #   scipy
     #   torchvision
 nvidia-cublas-cu12==12.4.5.8
     # via
@@ -225,6 +229,10 @@ ruff==0.11.2
     # via -r requirements-dev.in
 safetensors==0.5.3
     # via accelerate
+scikit-learn==1.6.1
+    # via -r requirements.in
+scipy==1.15.2
+    # via scikit-learn
 sentry-sdk==2.25.1
     # via wandb
 setproctitle==1.3.5
@@ -241,6 +249,8 @@ stack-data==0.6.3
     # via ipython
 sympy==1.13.1
     # via torch
+threadpoolctl==3.6.0
+    # via scikit-learn
 torch==2.6.0
     # via
     #   accelerate
