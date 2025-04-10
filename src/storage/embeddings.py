@@ -4,7 +4,7 @@ import numpy as np
 import typing as T
 
 
-class SISAEmbeddingStorage:
+class SISPAEmbeddingStorage:
     """Storage interface for SISA embeddings.
 
     Manages storage and retrieval of embeddings using HDF5.
