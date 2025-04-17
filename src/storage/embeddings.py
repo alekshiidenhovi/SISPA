@@ -5,7 +5,7 @@ import typing as T
 
 
 class SISPAEmbeddingStorage:
-    """Storage interface for SISA embeddings.
+    """Storage interface for SISPA embeddings.
 
     Manages storage and retrieval of embeddings using HDF5.
 
