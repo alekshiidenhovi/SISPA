@@ -15,9 +15,9 @@ def train_model_on_shard(
     prepared_train_dataloader: DataLoader,
     prepared_val_dataloader: DataLoader,
     loss_fn: nn.Module,
-    shard_idx: int,
-    val_interval: int,
+    val_batch_interval: int,
     epochs: int,
+    shard_idx: int,
 ):
     """
     Train a model on a specific shard of data.
@@ -80,7 +80,7 @@ def train_model_on_shard(
                     prepared_optimizer.step()
                     prepared_optimizer.zero_grad()
 
-            if (batch_idx + 1) % val_interval == 0:
+            if (batch_idx + 1) % val_batch_interval == 0:
                 val_loss, val_accuracy = validate(
                     accelerator=accelerator,
                     prepared_embedding_model=prepared_embedding_model,
