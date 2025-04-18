@@ -2,7 +2,7 @@ from torch.utils.data import DataLoader
 from torchvision import transforms, datasets
 import typing as T
 from pathlib import Path
-from datasets.mnist.sharding import create_mnist_shards
+from datasets.mnist.shard_splits import create_mnist_shards
 
 
 def get_mnist_dataloader(
