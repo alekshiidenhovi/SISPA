@@ -2,6 +2,14 @@ import h5py
 import torch
 import numpy as np
 import typing as T
+from pydantic import BaseModel, Field
+
+
+class EmbeddingData(BaseModel):
+    label: str = Field(description="Label of the datapoint")
+    embedding: T.List[float] = Field(
+        description="Embedding of the datapoint in list format"
+    )
 
 
 class SISPAEmbeddingStorage:
@@ -45,6 +53,7 @@ class SISPAEmbeddingStorage:
         self,
         shard_idx: int,
         datapoint_ids: T.List[str],
+        labels: T.List[str],
         embeddings: torch.Tensor,
     ):
         """Store embeddings for a specific shard and datapoints.
@@ -55,7 +64,9 @@ class SISPAEmbeddingStorage:
             Index of the shard
         datapoint_ids : list[str]
             ID of the datapoint
-        embedding : torch.Tensor
+        labels: list[str]
+            Labels of the datapoint
+        embeddings : torch.Tensor
             Embedding tensor to store
         """
         if embeddings.shape[1] != self.embedding_dim:
@@ -68,25 +79,32 @@ class SISPAEmbeddingStorage:
                 f"Number of datapoints mismatch: expected {len(datapoint_ids)}, got {embeddings.shape[0]}"
             )
 
+        if len(labels) != len(datapoint_ids):
+            raise ValueError(
+                f"Number of labels mismatch: expected {len(datapoint_ids)}, got {len(labels)}"
+            )
+
         shard_group = self._get_shard_group_name(shard_idx)
         if shard_group not in self.file:
             self.file.create_group(shard_group)
 
         for idx in range(len(datapoint_ids)):
             datapoint_id = datapoint_ids[idx]
+            label = labels[idx]
             embedding = embeddings[idx]
-            datapoint_path = self._get_datapoint_path(shard_idx, datapoint_id)
+            datapoint_path = self._get_datapoint_path(shard_idx, label, datapoint_id)
             if datapoint_path in self.file:
                 del self.file[datapoint_path]
             embedding_np = embedding.detach().cpu().numpy()
-            self.file.create_dataset(
+            dataset = self.file.create_dataset(
                 datapoint_path,
                 shape=embedding_np.shape,
                 data=embedding_np,
                 dtype=np.float32,
             )
+            dataset.attrs["label"] = label
 
-    def retrieve_shard(self, shard_idx: int) -> T.Optional[T.Dict[int, torch.Tensor]]:
+    def retrieve_shard(self, shard_idx: int) -> T.Optional[T.Dict[str, EmbeddingData]]:
         """Retrieve all embeddings for a specific shard.
 
         Parameters
@@ -97,41 +115,24 @@ class SISPAEmbeddingStorage:
         Returns
         -------
 
-        Dict[int, torch.Tensor]
+        Dict[str, torch.Tensor]
             Dictionary mapping datapoint IDs to embeddings
         """
         shard_group = self._get_shard_group_name(shard_idx)
         if shard_group not in self.file:
             return None
 
-        embedding_dict: T.Dict[int, torch.Tensor] = {}
+        embedding_dict: T.Dict[str, EmbeddingData] = {}
         for datapoint_id in self.file[shard_group]:
-            embedding_np = self.file[self._get_datapoint_path(shard_idx, datapoint_id)][
-                ()
-            ]
-            embedding_dict[int(datapoint_id)] = torch.tensor(embedding_np)
+            datapoint_path = self._get_datapoint_path(shard_idx, datapoint_id)
+            label = self.file[datapoint_path].attrs["label"]
+            embedding_np = self.file[datapoint_path][()]
+            embedding_dict[datapoint_id] = EmbeddingData(
+                label=label,
+                embedding=embedding_np.tolist(),
+            )
 
         return embedding_dict
-
-    def retrieve_embedding_by_id(
-        self, shard_idx: int, datapoint_id: str
-    ) -> torch.Tensor:
-        """Retrieve an embedding by its ID.
-
-        Parameters
-        ----------
-        shard_idx : int
-            Index of the shard
-        datapoint_id : str
-            ID of the datapoint
-
-        Returns
-        -------
-        torch.Tensor
-            Embedding tensor
-        """
-        embedding_np = self.file[self._get_datapoint_path(shard_idx, datapoint_id)][()]
-        return torch.tensor(embedding_np)
 
     def remove_shard(self, shard_idx: int) -> bool:
         """Remove a shard from storage.
