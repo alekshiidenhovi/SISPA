@@ -63,6 +63,42 @@ class SISPAModelStorage:
         """
         return f"{self._get_sharded_model_name(shard_id)}:latest"
 
+    def _get_aggregator_model_filename(self) -> str:
+        """
+        Get the name of the model file for the aggregator model.
+
+        Returns:
+            Name of the model file
+        """
+        return "aggregator_model.safetensors"
+
+    def _get_aggregator_model_artifact_name(self) -> str:
+        """
+        Get the name of the model artifact for the aggregator model.
+
+        Returns:
+            Name of the model artifact
+        """
+        return "aggregator_model:latest"
+
+    def _get_aggregator_model_filename(self) -> str:
+        """
+        Get the name of the model file for the aggregator model.
+
+        Returns:
+            Name of the model file
+        """
+        return "aggregator_model.safetensors"
+
+    def _get_aggregator_model_artifact_name(self) -> str:
+        """
+        Get the name of the model artifact for the aggregator model.
+
+        Returns:
+            Name of the model artifact
+        """
+        return "aggregator_model:latest"
+
     def save_sharded_model(
         self,
         sharded_model: torch.nn.Module,
@@ -190,4 +226,121 @@ class SISPAModelStorage:
         """
         model_artifact_name = self._get_sharded_model_artifact_name(shard_id)
         artifact = wandb.use_artifact(model_artifact_name)
+        return artifact.metadata
+
+    def save_aggregator_model(
+        self,
+        aggregator_model: torch.nn.Module,
+        wandb_run: wandb.wandb_run.Run,
+    ) -> str:
+        """
+        Save a PyTorch aggregator model to both local storage and W&B.
+
+        Args:
+            aggregator_model: The PyTorch aggregator model to save
+            wandb_run: W&B run to use for uploading
+
+        Returns:
+            Path to the locally saved model file
+        """
+        model_filename = self._get_aggregator_model_filename()
+        save_path = os.path.join(
+            self.storage_path, self.aggregator_model_dir, model_filename
+        )
+        state_dict = aggregator_model.state_dict()
+
+        metadata = {"model_type": "aggregator"}
+        save_file(state_dict, save_path, metadata=metadata)
+
+        artifact = wandb.Artifact(
+            name=self._get_aggregator_model_artifact_name(),
+            type="model",
+            metadata=metadata,
+        )
+        artifact.add_file(save_path)
+        wandb_run.log_artifact(artifact)
+
+        return save_path
+
+    def load_aggregator_model_local(
+        self,
+        aggregator_model: torch.nn.Module,
+    ) -> torch.nn.Module:
+        """
+        Load an aggregator model from local storage.
+
+        Args:
+            aggregator_model: An initialized model instance to load weights into
+
+        Returns:
+            The loaded model
+        """
+        model_filename = self._get_aggregator_model_filename()
+        load_path = os.path.join(self.aggregator_model_dir, model_filename)
+
+        if not os.path.exists(load_path):
+            raise FileNotFoundError(f"Aggregator model file not found at {load_path}")
+
+        state_dict = load_file(load_path)
+        aggregator_model.load_state_dict(state_dict)
+
+        return aggregator_model
+
+    def load_aggregator_model_wandb(
+        self,
+        aggregator_model: torch.nn.Module,
+        wandb_artifact_name: T.Optional[str] = None,
+    ) -> torch.nn.Module:
+        """
+        Load an aggregator model from W&B.
+
+        Args:
+            aggregator_model: An initialized model instance to load weights into
+            wandb_artifact_name: Name of the W&B artifact to load (defaults to latest version)
+
+        Returns:
+            The loaded model
+        """
+        if wandb_artifact_name is None:
+            wandb_artifact_name = self._get_aggregator_model_artifact_name()
+
+        artifact = wandb.use_artifact(wandb_artifact_name)
+        artifact_dir = artifact.download()
+
+        safetensors_files = list(Path(artifact_dir).glob("*.safetensors"))
+        if not safetensors_files:
+            raise FileNotFoundError(
+                f"No safetensors file found in W&B artifact {wandb_artifact_name}"
+            )
+
+        load_path = str(safetensors_files[0])
+        state_dict = load_file(load_path)
+        aggregator_model.load_state_dict(state_dict)
+
+        return aggregator_model
+
+    def get_aggregator_model_local_metadata(self) -> T.Dict:
+        """
+        Get metadata for the aggregator model from local storage.
+
+        Returns:
+            Dictionary of metadata
+        """
+        model_filename = self._get_aggregator_model_filename()
+        load_path = os.path.join(self.aggregator_model_dir, model_filename)
+
+        if not os.path.exists(load_path):
+            raise FileNotFoundError(f"Aggregator model file not found at {load_path}")
+
+        metadata = load_file(load_path, metadata_only=True)
+        return metadata
+
+    def get_aggregator_model_wandb_metadata(self) -> T.Dict:
+        """
+        Get metadata for the aggregator model from W&B.
+
+        Returns:
+            Dictionary of metadata
+        """
+        artifact = wandb.use_artifact(self._get_aggregator_model_artifact_name())
         return artifact.metadata
