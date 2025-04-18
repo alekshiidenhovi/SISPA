@@ -45,9 +45,9 @@ def train_sharded_embedding_model(
         Number of epochs to train for
     """
 
+    prepared_embedding_model.train()
+    prepared_classifier.train()
     for epoch_idx in range(epochs):
-        prepared_embedding_model.train()
-        prepared_classifier.train()
         total_training_loss: float = 0.0
         total_training_correct: int = 0
         total_training_predicted: int = 0
@@ -180,5 +180,8 @@ def validate_shard_training(
         if total_validation_predicted > 0
         else 0.0
     )
+
+    prepared_embedding_model.train()
+    prepared_classifier.train()
 
     return val_loss, val_accuracy
