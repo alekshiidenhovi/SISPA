@@ -8,7 +8,7 @@ from accelerate import Accelerator
 def precompute_embeddings(
     accelerator: Accelerator,
     prepared_model: torch.nn.Module,
-    prepared_train_dataloader: DataLoader,
+    prepared_dataloader: DataLoader,
     shard_idx: int,
 ):
     """
@@ -20,8 +20,8 @@ def precompute_embeddings(
         Accelerator to use for computing embeddings
     prepared_model : torch.nn.Module
         Trained model to use for computing embeddings
-    prepared_train_dataloader : DataLoader
-        DataLoader for the entire training dataset
+    prepared_dataloader : DataLoader
+        DataLoader for the dataset
     shard_idx : int
         Index of the model shard being precomputed
 
@@ -34,7 +34,7 @@ def precompute_embeddings(
     all_labels = torch.tensor([], device=accelerator.device, dtype=torch.int64)
 
     dataloader_with_progress_bar = tqdm(
-        prepared_train_dataloader, desc=f"Precomputing embeddings for shard {shard_idx}"
+        prepared_dataloader, desc=f"Precomputing embeddings for shard {shard_idx}"
     )
     for batch_idx, (images, labels) in enumerate(dataloader_with_progress_bar):
         with accelerator.autocast():
