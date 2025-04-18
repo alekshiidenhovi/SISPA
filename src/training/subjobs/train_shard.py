@@ -8,7 +8,7 @@ from accelerate import Accelerator
 from training.subjobs.utils import compute_prediction_statistics
 
 
-def train_model_on_shard(
+def train_sharded_embedding_model(
     accelerator: Accelerator,
     prepared_embedding_model: nn.Module,
     prepared_classifier: nn.Module,
