@@ -3,8 +3,8 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 
-class EmbeddingAggregator(nn.Module):
-    """Neural network for aggregating embeddings from SISA submodels."""
+class SISPAEmbeddingAggregator(nn.Module):
+    """Neural network for aggregating embeddings from SISPA submodels."""
 
     def __init__(
         self, embedding_dim: int, hidden_dim: int, num_shards: int, num_classes: int

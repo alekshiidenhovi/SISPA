@@ -1,10 +1,11 @@
 import torch
 import torch.nn as nn
-from models.embedding_aggregator import EmbeddingAggregator
+from models.sispa.sispa_embedding_aggregator import SISPAEmbeddingAggregator
+from models.sispa.sispa_sharded_embeddings import SISPAShardedEmbeddings
 
 
-class SISPA(nn.Module):
-    """SISA with pre-computed embedding aggregation layer.
+class SISPAFramework(nn.Module):
+    """SISPA with pre-computed embedding aggregation layer.
 
     A neural network that combines multiple backbone models and aggregates their embeddings to make predictions.
 
@@ -17,12 +18,12 @@ class SISPA(nn.Module):
 
     def __init__(
         self,
-        embedding_models: nn.ModuleList,
-        embedding_aggregator: EmbeddingAggregator,
+        sispa_sharded_embeddings: SISPAShardedEmbeddings,
+        sispa_embedding_aggregator: SISPAEmbeddingAggregator,
     ):
         super().__init__()
-        self.embedding_models = embedding_models
-        self.embedding_aggregator = embedding_aggregator
+        self.sispa_sharded_embeddings = sispa_sharded_embeddings
+        self.sispa_embedding_aggregator = sispa_embedding_aggregator
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """Forward pass of the SISPA model.
@@ -37,6 +38,6 @@ class SISPA(nn.Module):
         torch.Tensor
             Logits tensor of shape (batch_size, num_classes)
         """
-        embeddings = [model(x) for model in self.embedding_models]
+        embeddings = [model(x) for model in self.sispa_sharded_embeddings]
         concated_embeddings = torch.cat(embeddings, dim=1)
-        return self.embedding_aggregator(concated_embeddings)
+        return self.sispa_embedding_aggregator(concated_embeddings)
