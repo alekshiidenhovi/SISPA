@@ -1,6 +1,6 @@
 import torch
-from models.resnet_block import ResnetBlock
-from models.conv_7 import Conv7
+from models.resnet.resnet_block import ResnetBlock
+from models.resnet.conv_7 import Conv7
 from einops import rearrange
 
 
