@@ -4,7 +4,8 @@ from tqdm import tqdm
 from accelerate import Accelerator
 
 
-def compute_embeddings(
+@torch.no_grad()
+def precompute_embeddings(
     accelerator: Accelerator,
     prepared_model: torch.nn.Module,
     dataloader_with_progress_bar: tqdm[DataLoader],
@@ -31,11 +32,10 @@ def compute_embeddings(
     all_embeddings = torch.tensor([], device=accelerator.device, dtype=torch.float16)
     all_labels = torch.tensor([], device=accelerator.device, dtype=torch.int64)
     prepared_model.eval()
-    with torch.no_grad():
-        for images, labels in dataloader_with_progress_bar:
-            with accelerator.autocast():
-                embeddings = prepared_model(images)
-                all_embeddings = torch.cat((all_embeddings, embeddings), dim=0)
-                all_labels = torch.cat((all_labels, labels), dim=0)
+    for images, labels in dataloader_with_progress_bar:
+        with accelerator.autocast():
+            embeddings = prepared_model(images)
+            all_embeddings = torch.cat((all_embeddings, embeddings), dim=0)
+            all_labels = torch.cat((all_labels, labels), dim=0)
 
     return all_embeddings, all_labels
