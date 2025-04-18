@@ -16,10 +16,18 @@ class SISPAModelStorage:
 
     def __init__(self, storage_path: str):
         self.storage_path = storage_path
-        self.base_dir = "models"
-        os.makedirs(os.path.join(storage_path, self.base_dir), exist_ok=True)
 
-    def _get_model_name(self, shard_id: str) -> str:
+        base_dir = "models"
+        self.sharded_model_dir = f"{base_dir}/sharded"
+        self.aggregator_model_dir = f"{base_dir}/aggregator"
+
+        os.makedirs(os.path.join(storage_path, base_dir), exist_ok=True)
+        os.makedirs(os.path.join(storage_path, self.sharded_model_dir), exist_ok=True)
+        os.makedirs(
+            os.path.join(storage_path, self.aggregator_model_dir), exist_ok=True
+        )
+
+    def _get_sharded_model_name(self, shard_id: str) -> str:
         """
         Get the name of the model name for a given shard.
 
@@ -31,7 +39,7 @@ class SISPAModelStorage:
         """
         return f"sisa_shard_{shard_id}"
 
-    def _get_model_filename(self, shard_id: str) -> str:
+    def _get_sharded_model_filename(self, shard_id: str) -> str:
         """
         Get the name of the model file for a given shard.
 
@@ -41,9 +49,9 @@ class SISPAModelStorage:
         Returns:
             Name of the model file
         """
-        return f"{self._get_model_name(shard_id)}.safetensors"
+        return f"{self._get_sharded_model_name(shard_id)}.safetensors"
 
-    def _get_model_artifact_name(self, shard_id: str) -> str:
+    def _get_sharded_model_artifact_name(self, shard_id: str) -> str:
         """
         Get the name of the model artifact for a given shard.
 
@@ -53,11 +61,11 @@ class SISPAModelStorage:
         Returns:
             Name of the model artifact
         """
-        return f"{self._get_model_name(shard_id)}:latest"
+        return f"{self._get_sharded_model_name(shard_id)}:latest"
 
-    def save_model(
+    def save_sharded_model(
         self,
-        model: torch.nn.Module,
+        sharded_model: torch.nn.Module,
         shard_id: str,
         wandb_run: wandb.wandb_run.Run,
     ) -> str:
@@ -65,7 +73,7 @@ class SISPAModelStorage:
         Save a PyTorch model trained on a SISA shard to both local storage and W&B.
 
         Args:
-            model: The PyTorch model to save
+            sharded_model: The PyTorch model to save
             shard_id: Identifier for the SISA shard
             wandb_run: W&B run to use for uploading
 
@@ -73,14 +81,14 @@ class SISPAModelStorage:
             Path to the locally saved model file
         """
 
-        model_filename = self._get_model_filename(shard_id)
-        save_path = os.path.join(self.storage_path, self.base_dir, model_filename)
-        state_dict = model.state_dict()
+        model_filename = self._get_sharded_model_filename(shard_id)
+        save_path = os.path.join(self.sharded_model_dir, model_filename)
+        state_dict = sharded_model.state_dict()
 
         metadata = {"shard_id": shard_id}
         save_file(state_dict, save_path, metadata=metadata)
 
-        model_artifact_name = self._get_model_artifact_name(shard_id)
+        model_artifact_name = self._get_sharded_model_artifact_name(shard_id)
         artifact = wandb.Artifact(
             name=model_artifact_name, type="model", metadata=metadata
         )
@@ -89,36 +97,36 @@ class SISPAModelStorage:
 
         return save_path
 
-    def load_model_local(
+    def load_sharded_model_local(
         self,
-        model: torch.nn.Module,
+        sharded_model: torch.nn.Module,
         shard_id: str,
     ) -> torch.nn.Module:
         """
         Load a model for a specific SISA shard from local storage.
 
         Args:
-            model: An initialized model instance to load weights into
+            sharded_model: An initialized model instance to load weights into
             shard_id: Identifier for the SISA shard
 
         Returns:
             The loaded model
         """
 
-        model_filename = self._get_model_filename(shard_id)
-        load_path = os.path.join(self.storage_path, self.base_dir, model_filename)
+        model_filename = self._get_sharded_model_filename(shard_id)
+        load_path = os.path.join(self.sharded_model_dir, model_filename)
 
         if not os.path.exists(load_path):
             raise FileNotFoundError(f"Model file not found at {load_path}")
 
         state_dict = load_file(load_path)
-        model.load_state_dict(state_dict)
+        sharded_model.load_state_dict(state_dict)
 
-        return model
+        return sharded_model
 
-    def load_model_wandb(
+    def load_sharded_model_wandb(
         self,
-        model: torch.nn.Module,
+        sharded_model: torch.nn.Module,
         shard_id: str,
         wandb_artifact_name: T.Optional[str] = None,
     ) -> torch.nn.Module:
@@ -126,7 +134,7 @@ class SISPAModelStorage:
         Load a model for a specific SISA shard from W&B.
 
         Args:
-            model: An initialized model instance to load weights into
+            sharded_model: An initialized model instance to load weights into
             shard_id: Identifier for the SISA shard
             wandb_artifact_name: Name of the W&B artifact to load (defaults to latest version)
 
@@ -134,7 +142,7 @@ class SISPAModelStorage:
             The loaded model
         """
         if wandb_artifact_name is None:
-            wandb_artifact_name = self._get_model_artifact_name(shard_id)
+            wandb_artifact_name = self._get_sharded_model_artifact_name(shard_id)
 
         artifact = wandb.use_artifact(wandb_artifact_name)
         artifact_dir = artifact.download()
@@ -147,11 +155,11 @@ class SISPAModelStorage:
 
         load_path = str(safetensors_files[0])
         state_dict = load_file(load_path)
-        model.load_state_dict(state_dict)
+        sharded_model.load_state_dict(state_dict)
 
-        return model
+        return sharded_model
 
-    def get_local_metadata(self, shard_id: str) -> T.Dict:
+    def get_sharded_model_local_metadata(self, shard_id: str) -> T.Dict:
         """
         Get metadata for a specific SISA shard model from local storage.
 
@@ -161,8 +169,8 @@ class SISPAModelStorage:
         Returns:
             Dictionary of metadata
         """
-        model_filename = self._get_model_filename(shard_id)
-        load_path = os.path.join(self.storage_path, self.base_dir, model_filename)
+        model_filename = self._get_sharded_model_filename(shard_id)
+        load_path = os.path.join(self.sharded_model_dir, model_filename)
 
         if not os.path.exists(load_path):
             raise FileNotFoundError(f"Model file not found at {load_path}")
@@ -170,7 +178,7 @@ class SISPAModelStorage:
         metadata = load_file(load_path, metadata_only=True)
         return metadata
 
-    def get_wandb_metadata(self, shard_id: str) -> T.Dict:
+    def get_sharded_model_wandb_metadata(self, shard_id: str) -> T.Dict:
         """
         Get metadata for a specific SISA shard model from W&B.
 
@@ -180,6 +188,6 @@ class SISPAModelStorage:
         Returns:
             Dictionary of metadata
         """
-        model_artifact_name = self._get_model_artifact_name(shard_id)
+        model_artifact_name = self._get_sharded_model_artifact_name(shard_id)
         artifact = wandb.use_artifact(model_artifact_name)
         return artifact.metadata
