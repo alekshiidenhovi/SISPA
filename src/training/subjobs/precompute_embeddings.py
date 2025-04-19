@@ -7,8 +7,8 @@ from accelerate import Accelerator
 @torch.no_grad()
 def precompute_embeddings(
     accelerator: Accelerator,
-    prepared_model: torch.nn.Module,
-    prepared_dataloader: DataLoader,
+    trained_model: torch.nn.Module,
+    dataloader: DataLoader,
     shard_idx: int,
 ):
     """
@@ -18,9 +18,9 @@ def precompute_embeddings(
     ----------
     accelerator : Accelerator
         Accelerator to use for computing embeddings
-    prepared_model : torch.nn.Module
+    trained_model : torch.nn.Module
         Trained model to use for computing embeddings
-    prepared_dataloader : DataLoader
+    dataloader : DataLoader
         DataLoader for the dataset
     shard_idx : int
         Index of the model shard being precomputed
@@ -30,6 +30,10 @@ def precompute_embeddings(
     tuple
         Tuple of (embeddings, labels). Embeddings are of shape (N, D) and labels are of shape (N,).
     """
+    prepared_trained_model, prepared_dataloader = accelerator.prepare(
+        trained_model, dataloader
+    )
+
     all_embeddings = torch.tensor([], device=accelerator.device, dtype=torch.float16)
     all_labels = torch.tensor([], device=accelerator.device, dtype=torch.int64)
 
@@ -42,7 +46,7 @@ def precompute_embeddings(
                 f"Precomputing embeddings for shard {shard_idx} - Batch {batch_idx}"
             )
 
-            embeddings = prepared_model(images)
+            embeddings = prepared_trained_model(images)
             all_embeddings = torch.cat((all_embeddings, embeddings), dim=0)
             all_labels = torch.cat((all_labels, labels), dim=0)
 

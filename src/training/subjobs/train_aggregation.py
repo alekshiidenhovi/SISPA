@@ -10,10 +10,10 @@ from training.subjobs.utils import compute_prediction_statistics
 
 def train_aggregation_classifier(
     accelerator: Accelerator,
-    prepared_aggregator: EmbeddingAggregator,
-    prepared_optimizer: torch.optim.Optimizer,
-    prepared_training_embeddings_dataloader: DataLoader,
-    prepared_validation_embeddings_dataloader: DataLoader,
+    aggregator: EmbeddingAggregator,
+    optimizer: torch.optim.Optimizer,
+    training_embeddings_dataloader: DataLoader,
+    validation_embeddings_dataloader: DataLoader,
     loss_fn: nn.Module,
     val_batch_interval: int,
     epochs: int,
@@ -21,25 +21,40 @@ def train_aggregation_classifier(
     """
     Train an aggregation classifier on precomputed embeddings from multiple shards.
 
-    Parameters
-    ----------
-    accelerator : Accelerator
-        Accelerator to use for training
-    prepared_aggregator : nn.Module
-        Prepared embedding aggregator
-    prepared_optimizer : torch.optim.Optimizer
-        Prepared optimizer for the embedding aggregator
-    prepared_training_embeddings_dataloader : DataLoader
-        Prepared dataloader for the full training dataset of precomputed embeddings
-    prepared_validation_embeddings_dataloader : DataLoader
-        Prepared validation dataloader of precomputed embeddings
-    loss_fn : nn.Module
-        Loss function
-    val_batch_interval : int
-        Interval for validation, the model is validated every `val_batch_interval` batches
-    epochs : int
-        Number of epochs to train for
+    Args:
+        accelerator : Accelerator
+            Accelerator to use for training
+        aggregator : nn.Module
+            Embedding aggregator
+        optimizer : torch.optim.Optimizer
+            Optimizer for the embedding aggregator
+        training_embeddings_dataloader : DataLoader
+            Dataloader for the full training dataset of precomputed embeddings
+        validation_embeddings_dataloader : DataLoader
+            Dataloader for the validation dataset of precomputed embeddings
+        loss_fn : nn.Module
+            Loss function
+        val_batch_interval : int
+            Interval for validation, the model is validated every `val_batch_interval` batches
+        epochs : int
+            Number of epochs to train for
+
+    Returns:
+        nn.Module
+            Trained embedding aggregator on the CPU
     """
+
+    (
+        prepared_aggregator,
+        prepared_optimizer,
+        prepared_training_embeddings_dataloader,
+        prepared_validation_embeddings_dataloader,
+    ) = accelerator.prepare(
+        aggregator,
+        optimizer,
+        training_embeddings_dataloader,
+        validation_embeddings_dataloader,
+    )
 
     prepared_aggregator.train()
     for epoch_idx in range(epochs):
@@ -99,6 +114,8 @@ def train_aggregation_classifier(
             f"Accuracy: {final_accuracy:.2f}%"
         )
 
+    return accelerator.unwrap_model(prepared_aggregator).cpu()
+
 
 @torch.no_grad()
 def validate_aggregation_training(
@@ -119,7 +136,7 @@ def validate_aggregation_training(
         Accelerator to use for validation
     prepared_aggregator : EmbeddingAggregator
         Prepared aggregator to validate
-    prepared_embeddings_dataloader : DataLoader
+    prepared_validation_embeddings_dataloader : DataLoader
         Prepared validation dataloader
     loss_fn : nn.Module
         Loss function

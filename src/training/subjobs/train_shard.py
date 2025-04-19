@@ -10,40 +10,52 @@ from training.subjobs.utils import compute_prediction_statistics
 
 def train_sharded_embedding_model(
     accelerator: Accelerator,
-    prepared_embedding_model: nn.Module,
-    prepared_classifier: nn.Module,
-    prepared_optimizer: optim.Optimizer,
-    prepared_train_dataloader: DataLoader,
-    prepared_val_dataloader: DataLoader,
+    embedding_model: nn.Module,
+    classifier: nn.Module,
+    optimizer: optim.Optimizer,
+    train_dataloader: DataLoader,
+    val_dataloader: DataLoader,
     loss_fn: nn.Module,
     val_batch_interval: int,
     epochs: int,
     shard_idx: int,
-):
+) -> nn.Module:
     """
     Train a model on a specific shard of data.
 
-    Parameters
-    ----------
-    accelerator : Accelerator
-        Accelerator to use for training
-    prepared_embedding_model : nn.Module
-        Prepared embedding model
-    prepared_classifier : nn.Module
-        Prepared classifier
-    prepared_optimizer : optim.Optimizer
-        Prepared optimizer
-    prepared_train_dataloader : DataLoader
-        Prepared train dataloader
-    prepared_val_dataloader : DataLoader
-        Prepared validation dataloader
-    loss_fn : nn.Module
-        Loss function
-    shard_idx : int
-        Index of the shard to train on
-    epochs : int
-        Number of epochs to train for
+    Args:
+        accelerator : Accelerator
+            Accelerator to use for training
+        embedding_model : nn.Module
+            Untrained embedding model
+        classifier : nn.Module
+            Untrained classifier
+        optimizer : optim.Optimizer
+            Optimizer
+        train_dataloader : DataLoader
+            Train dataloader
+        val_dataloader : DataLoader
+            Validation dataloader
+        loss_fn : nn.Module
+            Loss function
+        shard_idx : int
+            Index of the shard to train on
+        epochs : int
+            Number of epochs to train for
+
+    Returns:
+        nn.Module
+            Trained embedding model on the CPU
     """
+    (
+        prepared_embedding_model,
+        prepared_classifier,
+        prepared_optimizer,
+        prepared_train_dataloader,
+        prepared_val_dataloader,
+    ) = accelerator.prepare(
+        embedding_model, classifier, optimizer, train_dataloader, val_dataloader
+    )
 
     prepared_embedding_model.train()
     prepared_classifier.train()
@@ -107,6 +119,8 @@ def train_sharded_embedding_model(
             f"Loss: {total_training_loss / len(prepared_train_dataloader):.4f}, "
             f"Accuracy: {final_accuracy:.2f}%"
         )
+
+    return accelerator.unwrap_model(prepared_embedding_model).cpu()
 
 
 @torch.no_grad()
