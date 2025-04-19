@@ -2,19 +2,22 @@ import torch
 from torch.utils.data import DataLoader, TensorDataset
 from storage.embeddings import SISPAEmbeddingStorage
 from common.logger import logger
+from common.types import TrainingStep
 
 
-def prepare_aggregation_dataloader(
-    embeddings_storage: SISPAEmbeddingStorage,
+def load_aggregation_dataloader(
+    embedding_storage: SISPAEmbeddingStorage,
     num_shards: int,
     batch_size: int,
-    device: torch.device,
+    training_step: TrainingStep,
 ) -> DataLoader:
-    all_embeddings = torch.tensor([], device=device, dtype=torch.float32)
-    all_labels = torch.tensor([], device=device, dtype=torch.long)
+    all_embeddings = torch.tensor([], dtype=torch.float32)
+    all_labels = torch.tensor([], dtype=torch.int64)
 
     for shard_idx in range(num_shards):
-        shard_embeddings_dict = embeddings_storage.retrieve_shard(shard_idx)
+        shard_embeddings_dict = embedding_storage.retrieve_shard(
+            training_step=training_step, shard_idx=shard_idx
+        )
         if shard_embeddings_dict is None:
             logger.warning(f"No embeddings found for shard {shard_idx}")
             continue
