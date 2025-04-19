@@ -23,8 +23,6 @@ class SISPAEmbeddingStorage:
         Path to the HDF5 file
     embedding_dim : int
         Dimension of embeddings
-    create_new : bool, optional
-        If True, creates a new storage file, by default False
     """
 
     def __init__(self, storage_path: str, embedding_dim: int):
@@ -45,7 +43,7 @@ class SISPAEmbeddingStorage:
         """Internal helper method to get the name of a shard group."""
         return f"{self.base_dir}/shard_{shard_idx}"
 
-    def _get_datapoint_path(self, shard_idx: int, datapoint_id: str) -> str:
+    def _get_shard_datapoint_path(self, shard_idx: int, datapoint_id: str) -> str:
         """Internal helper method to get the path of a datapoint."""
         return f"{self._get_shard_group_name(shard_idx)}/{datapoint_id}"
 
@@ -92,7 +90,7 @@ class SISPAEmbeddingStorage:
             datapoint_id = datapoint_ids[idx]
             label = labels[idx]
             embedding = embeddings[idx]
-            datapoint_path = self._get_datapoint_path(shard_idx, label, datapoint_id)
+            datapoint_path = self._get_shard_datapoint_path(shard_idx, datapoint_id)
             if datapoint_path in self.file:
                 del self.file[datapoint_path]
             embedding_np = embedding.detach().cpu().numpy()
@@ -124,7 +122,7 @@ class SISPAEmbeddingStorage:
 
         embedding_dict: T.Dict[str, EmbeddingData] = {}
         for datapoint_id in self.file[shard_group]:
-            datapoint_path = self._get_datapoint_path(shard_idx, datapoint_id)
+            datapoint_path = self._get_shard_datapoint_path(shard_idx, datapoint_id)
             label = self.file[datapoint_path].attrs["label"]
             embedding_np = self.file[datapoint_path][()]
             embedding_dict[datapoint_id] = EmbeddingData(
@@ -168,7 +166,7 @@ class SISPAEmbeddingStorage:
         bool
             True if removed successfully, False if not found
         """
-        datapoint_path = self._get_datapoint_path(shard_idx, datapoint_id)
+        datapoint_path = self._get_shard_datapoint_path(shard_idx, datapoint_id)
         if datapoint_path in self.file:
             del self.file[datapoint_path]
             return True
