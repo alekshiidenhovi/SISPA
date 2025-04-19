@@ -3,6 +3,7 @@ import torch
 import numpy as np
 import typing as T
 from pydantic import BaseModel, Field
+from common.types import TrainingStep
 
 
 class EmbeddingData(BaseModel):
@@ -39,16 +40,19 @@ class SISPAEmbeddingStorage:
         if hasattr(self, "file"):
             self.file.close()
 
-    def _get_shard_group_name(self, shard_idx: int) -> str:
+    def _get_shard_group_name(self, training_step: TrainingStep, shard_idx: int) -> str:
         """Internal helper method to get the name of a shard group."""
-        return f"{self.base_dir}/shard_{shard_idx}"
+        return f"{self.base_dir}/{training_step.value}/shard_{shard_idx}"
 
-    def _get_shard_datapoint_path(self, shard_idx: int, datapoint_id: str) -> str:
+    def _get_shard_datapoint_path(
+        self, training_step: TrainingStep, shard_idx: int, datapoint_id: str
+    ) -> str:
         """Internal helper method to get the path of a datapoint."""
-        return f"{self._get_shard_group_name(shard_idx)}/{datapoint_id}"
+        return f"{self._get_shard_group_name(training_step, shard_idx)}/{datapoint_id}"
 
     def store_embeddings(
         self,
+        training_step: TrainingStep,
         shard_idx: int,
         datapoint_ids: T.List[str],
         labels: T.List[str],
@@ -58,6 +62,8 @@ class SISPAEmbeddingStorage:
 
         Parameters
         ----------
+        training_step : TrainingStep
+            Training step
         shard_idx : int
             Index of the shard
         datapoint_ids : list[str]
@@ -82,7 +88,7 @@ class SISPAEmbeddingStorage:
                 f"Number of labels mismatch: expected {len(datapoint_ids)}, got {len(labels)}"
             )
 
-        shard_group = self._get_shard_group_name(shard_idx)
+        shard_group = self._get_shard_group_name(training_step, shard_idx)
         if shard_group not in self.file:
             self.file.create_group(shard_group)
 
@@ -90,7 +96,9 @@ class SISPAEmbeddingStorage:
             datapoint_id = datapoint_ids[idx]
             label = labels[idx]
             embedding = embeddings[idx]
-            datapoint_path = self._get_shard_datapoint_path(shard_idx, datapoint_id)
+            datapoint_path = self._get_shard_datapoint_path(
+                training_step, shard_idx, datapoint_id
+            )
             if datapoint_path in self.file:
                 del self.file[datapoint_path]
             embedding_np = embedding.detach().cpu().numpy()
@@ -102,7 +110,9 @@ class SISPAEmbeddingStorage:
             )
             dataset.attrs["label"] = label
 
-    def retrieve_shard(self, shard_idx: int) -> T.Optional[T.Dict[str, EmbeddingData]]:
+    def retrieve_shard(
+        self, training_step: TrainingStep, shard_idx: int
+    ) -> T.Optional[T.Dict[str, EmbeddingData]]:
         """Retrieve all embeddings for a specific shard.
 
         Parameters
@@ -116,13 +126,15 @@ class SISPAEmbeddingStorage:
         Dict[str, torch.Tensor]
             Dictionary mapping datapoint IDs to embeddings
         """
-        shard_group = self._get_shard_group_name(shard_idx)
+        shard_group = self._get_shard_group_name(training_step, shard_idx)
         if shard_group not in self.file:
             return None
 
         embedding_dict: T.Dict[str, EmbeddingData] = {}
         for datapoint_id in self.file[shard_group]:
-            datapoint_path = self._get_shard_datapoint_path(shard_idx, datapoint_id)
+            datapoint_path = self._get_shard_datapoint_path(
+                training_step, shard_idx, datapoint_id
+            )
             label = self.file[datapoint_path].attrs["label"]
             embedding_np = self.file[datapoint_path][()]
             embedding_dict[datapoint_id] = EmbeddingData(
@@ -132,7 +144,7 @@ class SISPAEmbeddingStorage:
 
         return embedding_dict
 
-    def remove_shard(self, shard_idx: int) -> bool:
+    def remove_shard(self, training_step: TrainingStep, shard_idx: int) -> bool:
         """Remove a shard from storage.
 
         Parameters
@@ -145,13 +157,15 @@ class SISPAEmbeddingStorage:
         bool
             True if removed successfully, False if not found
         """
-        shard_group = self._get_shard_group_name(shard_idx)
+        shard_group = self._get_shard_group_name(training_step, shard_idx)
         if shard_group in self.file:
             del self.file[shard_group]
             return True
         return False
 
-    def remove_embedding(self, shard_idx: int, datapoint_id: str) -> bool:
+    def remove_embedding(
+        self, training_step: TrainingStep, shard_idx: int, datapoint_id: str
+    ) -> bool:
         """Remove an embedding from storage.
 
         Parameters
@@ -166,7 +180,9 @@ class SISPAEmbeddingStorage:
         bool
             True if removed successfully, False if not found
         """
-        datapoint_path = self._get_shard_datapoint_path(shard_idx, datapoint_id)
+        datapoint_path = self._get_shard_datapoint_path(
+            training_step, shard_idx, datapoint_id
+        )
         if datapoint_path in self.file:
             del self.file[datapoint_path]
             return True
