@@ -1,3 +1,12 @@
-import typing as T
+from enum import Enum
 
-TRAINING_STEP_TYPE = T.Literal["training", "validation", "testing"]
+
+class TrainingStep(Enum):
+    TRAINING = "training"
+    VALIDATION = "validation"
+    TESTING = "testing"
+
+
+class Operation(Enum):
+    ADD = "add"
+    REMOVE = "remove"
