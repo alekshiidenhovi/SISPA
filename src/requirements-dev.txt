@@ -2,40 +2,84 @@
 #    uv pip compile requirements.in requirements-dev.in --output-file requirements-dev.txt
 accelerate==1.6.0
     # via -r requirements.in
+aiosqlite==0.21.0
+    # via prefect
+alembic==1.15.2
+    # via prefect
 annotated-types==0.7.0
     # via pydantic
+anyio==4.9.0
+    # via
+    #   httpx
+    #   prefect
+    #   starlette
+apprise==1.9.3
+    # via prefect
+asgi-lifespan==2.1.0
+    # via prefect
 asttokens==3.0.0
     # via stack-data
+asyncpg==0.30.0
+    # via prefect
 attrs==25.3.0
     # via
     #   jsonschema
     #   referencing
+cachetools==5.5.2
+    # via prefect
 certifi==2025.1.31
     # via
+    #   apprise
+    #   httpcore
+    #   httpx
     #   requests
     #   sentry-sdk
+cffi==1.17.1
+    # via cryptography
 charset-normalizer==3.4.1
     # via requests
 click==8.1.8
     # via
     #   -r requirements.in
+    #   apprise
+    #   prefect
+    #   typer
+    #   uvicorn
     #   wandb
+cloudpickle==3.1.1
+    # via prefect
+colorama==0.4.6
+    # via griffe
 comm==0.2.2
     # via ipykernel
 contourpy==1.3.1
     # via matplotlib
+coolname==2.2.0
+    # via prefect
+cryptography==44.0.2
+    # via prefect
 cycler==0.12.1
     # via matplotlib
+dateparser==1.2.1
+    # via prefect
 debugpy==1.8.13
     # via ipykernel
 decorator==5.2.1
     # via ipython
+deprecated==1.2.18
+    # via opentelemetry-api
+docker==7.1.0
+    # via prefect
 docker-pycreds==0.4.0
     # via wandb
 einops==0.8.1
     # via -r requirements.in
+exceptiongroup==1.2.2
+    # via prefect
 executing==2.2.0
     # via stack-data
+fastapi==0.115.12
+    # via prefect
 fastjsonschema==2.21.1
     # via nbformat
 filelock==3.18.0
@@ -47,17 +91,49 @@ fonttools==4.57.0
 fsspec==2025.3.2
     # via
     #   huggingface-hub
+    #   prefect
     #   torch
 gitdb==4.0.12
     # via gitpython
 gitpython==3.1.44
     # via wandb
+graphviz==0.20.3
+    # via prefect
+greenlet==3.2.0
+    # via sqlalchemy
+griffe==1.7.2
+    # via prefect
+h11==0.14.0
+    # via
+    #   httpcore
+    #   uvicorn
+h2==4.2.0
+    # via httpx
 h5py==3.13.0
     # via -r requirements.in
+hpack==4.1.0
+    # via h2
+httpcore==1.0.8
+    # via
+    #   httpx
+    #   prefect
+httpx==0.28.1
+    # via prefect
 huggingface-hub==0.30.2
     # via accelerate
+humanize==4.12.2
+    # via
+    #   jinja2-humanize-extension
+    #   prefect
+hyperframe==6.1.0
+    # via h2
 idna==3.10
-    # via requests
+    # via
+    #   anyio
+    #   httpx
+    #   requests
+importlib-metadata==8.6.1
+    # via opentelemetry-api
 iniconfig==2.1.0
     # via pytest
 ipykernel==6.29.5
@@ -69,11 +145,22 @@ ipython-pygments-lexers==1.1.1
 jedi==0.19.2
     # via ipython
 jinja2==3.1.6
-    # via torch
+    # via
+    #   jinja2-humanize-extension
+    #   prefect
+    #   torch
+jinja2-humanize-extension==0.4.0
+    # via prefect
 joblib==1.4.2
     # via scikit-learn
+jsonpatch==1.33
+    # via prefect
+jsonpointer==3.0.0
+    # via jsonpatch
 jsonschema==4.23.0
-    # via nbformat
+    # via
+    #   nbformat
+    #   prefect
 jsonschema-specifications==2024.10.1
     # via jsonschema
 jupyter-client==8.6.3
@@ -85,14 +172,24 @@ jupyter-core==5.7.2
     #   nbformat
 kiwisolver==1.4.8
     # via matplotlib
+mako==1.3.10
+    # via alembic
+markdown==3.8
+    # via apprise
+markdown-it-py==3.0.0
+    # via rich
 markupsafe==3.0.2
-    # via jinja2
+    # via
+    #   jinja2
+    #   mako
 matplotlib==3.10.1
     # via -r requirements.in
 matplotlib-inline==0.1.7
     # via
     #   ipykernel
     #   ipython
+mdurl==0.1.2
+    # via markdown-it-py
 mpmath==1.3.0
     # via sympy
 nbformat==5.10.4
@@ -145,17 +242,28 @@ nvidia-nvjitlink-cu12==12.4.127
     #   torch
 nvidia-nvtx-cu12==12.4.127
     # via torch
+oauthlib==3.2.2
+    # via requests-oauthlib
+opentelemetry-api==1.32.1
+    # via prefect
+orjson==3.10.16
+    # via prefect
 packaging==24.2
     # via
     #   accelerate
     #   huggingface-hub
     #   ipykernel
     #   matplotlib
+    #   prefect
     #   pytest
 pandas==2.2.3
     # via -r requirements.in
 parso==0.8.4
     # via jedi
+pathspec==0.12.1
+    # via prefect
+pendulum==3.1.0
+    # via prefect
 pexpect==4.9.0
     # via ipython
 pillow==11.1.0
@@ -168,6 +276,10 @@ platformdirs==4.3.7
     #   wandb
 pluggy==1.5.0
     # via pytest
+prefect==3.3.5
+    # via -r requirements.in
+prometheus-client==0.21.1
+    # via prefect
 prompt-toolkit==3.0.50
     # via ipython
 protobuf==5.29.4
@@ -181,50 +293,96 @@ ptyprocess==0.7.0
     # via pexpect
 pure-eval==0.2.3
     # via stack-data
+pycparser==2.22
+    # via cffi
 pydantic==2.10.6
     # via
     #   -r requirements.in
+    #   fastapi
+    #   prefect
+    #   pydantic-extra-types
+    #   pydantic-settings
     #   wandb
 pydantic-core==2.27.2
-    # via pydantic
+    # via
+    #   prefect
+    #   pydantic
+pydantic-extra-types==2.10.3
+    # via prefect
+pydantic-settings==2.9.1
+    # via prefect
 pygments==2.19.1
     # via
     #   ipython
     #   ipython-pygments-lexers
+    #   rich
 pyparsing==3.2.3
     # via matplotlib
 pytest==8.3.5
     # via -r requirements-dev.in
 python-dateutil==2.9.0.post0
     # via
+    #   dateparser
     #   jupyter-client
     #   matplotlib
     #   pandas
+    #   pendulum
+    #   prefect
 python-dotenv==1.1.0
-    # via -r requirements.in
+    # via
+    #   -r requirements.in
+    #   pydantic-settings
+python-slugify==8.0.4
+    # via prefect
+python-socks==2.7.1
+    # via prefect
 pytz==2025.2
-    # via pandas
+    # via
+    #   dateparser
+    #   pandas
+    #   prefect
 pyyaml==6.0.2
     # via
     #   accelerate
+    #   apprise
     #   huggingface-hub
+    #   prefect
     #   wandb
 pyzmq==26.4.0
     # via
     #   ipykernel
     #   jupyter-client
+readchar==4.2.1
+    # via prefect
 referencing==0.36.2
     # via
     #   jsonschema
     #   jsonschema-specifications
+regex==2024.11.6
+    # via dateparser
 requests==2.32.3
     # via
+    #   apprise
+    #   docker
     #   huggingface-hub
+    #   requests-oauthlib
     #   wandb
+requests-oauthlib==2.0.0
+    # via apprise
+rfc3339-validator==0.1.4
+    # via prefect
+rich==14.0.0
+    # via
+    #   prefect
+    #   typer
 rpds-py==0.24.0
     # via
     #   jsonschema
     #   referencing
+ruamel-yaml==0.18.10
+    # via prefect
+ruamel-yaml-clib==0.2.12
+    # via ruamel-yaml
 ruff==0.11.2
     # via -r requirements-dev.in
 safetensors==0.5.3
@@ -241,18 +399,36 @@ setproctitle==1.3.5
     # via wandb
 setuptools==78.1.0
     # via wandb
+shellingham==1.5.4
+    # via typer
 six==1.17.0
     # via
     #   docker-pycreds
     #   python-dateutil
+    #   rfc3339-validator
 smmap==5.0.2
     # via gitdb
+sniffio==1.3.1
+    # via
+    #   anyio
+    #   asgi-lifespan
+    #   prefect
+sqlalchemy==2.0.40
+    # via
+    #   alembic
+    #   prefect
 stack-data==0.6.3
     # via ipython
+starlette==0.46.2
+    # via fastapi
 sympy==1.13.1
     # via torch
+text-unidecode==1.3
+    # via python-slugify
 threadpoolctl==3.6.0
     # via scikit-learn
+toml==0.10.2
+    # via prefect
 torch==2.6.0
     # via
     #   accelerate
@@ -276,22 +452,52 @@ traitlets==5.14.3
     #   nbformat
 triton==3.2.0
     # via torch
+typer==0.15.2
+    # via prefect
 typing-extensions==4.13.1
     # via
+    #   aiosqlite
+    #   alembic
+    #   anyio
+    #   fastapi
     #   huggingface-hub
     #   ipython
+    #   prefect
     #   pydantic
     #   pydantic-core
+    #   pydantic-extra-types
     #   referencing
+    #   sqlalchemy
     #   torch
+    #   typer
+    #   typing-inspection
     #   wandb
+typing-inspection==0.4.0
+    # via pydantic-settings
 tzdata==2025.2
-    # via pandas
+    # via
+    #   pandas
+    #   pendulum
+tzlocal==5.3.1
+    # via dateparser
+ujson==5.10.0
+    # via prefect
 urllib3==2.3.0
     # via
+    #   docker
     #   requests
     #   sentry-sdk
+uv==0.6.14
+    # via prefect
+uvicorn==0.34.2
+    # via prefect
 wandb==0.19.8
     # via -r requirements.in
 wcwidth==0.2.13
     # via prompt-toolkit
+websockets==15.0.1
+    # via prefect
+wrapt==1.17.2
+    # via deprecated
+zipp==3.21.0
+    # via importlib-metadata
