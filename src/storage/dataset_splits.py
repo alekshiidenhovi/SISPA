@@ -184,7 +184,7 @@ class SISPADatasetSplitsStorage:
 
     def retrieve_all_splits(
         self,
-    ) -> T.Tuple[T.List[T.List[int]], T.List[int], T.List[int]]:
+    ) -> T.Tuple[T.List[T.List[int]], T.List[int], T.List[int], T.List[int]]:
         """Retrieve all dataset splits.
 
         Returns
