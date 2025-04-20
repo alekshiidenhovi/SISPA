@@ -33,7 +33,7 @@ def create_shard_splits(
     class_labels: T.Set[int],
     sampling_ratio: float,
     seed: int = 42,
-) -> T.List[T.List[int]]:
+) -> T.Dict[int, T.List[int]]:
     """
     Create shards of MNIST dataset where each shard has:
     - 50% samples from a specific class
@@ -53,13 +53,13 @@ def create_shard_splits(
 
     Returns
     -------
-    List[List[int]]
-        List of datapoint indices belonging to each shard
+    Dict[int, List[int]]
+        Dictionary of shard indices
     """
     np.random.seed(seed)
 
     indices_by_class = defaultdict(list)
-    shard_indices = defaultdict(list)
+    shard_indices_dict = defaultdict(list)
     subset_dataset = Subset(dataset, train_indices)
 
     for subset_idx, (_, label) in enumerate(subset_dataset):
@@ -78,6 +78,6 @@ def create_shard_splits(
         )
 
         for i in range(len(class_labels)):
-            shard_indices[i].extend(class_indices[splits[i] : splits[i + 1]])
+            shard_indices_dict[i].extend(class_indices[splits[i] : splits[i + 1]])
 
-    return shard_indices
+    return shard_indices_dict

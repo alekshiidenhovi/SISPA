@@ -6,7 +6,6 @@ from sklearn.model_selection import train_test_split
 
 def create_dataset_splits(
     dataset: Dataset,
-    num_shards: int,
     train_val_test_split: T.Tuple[float, float, float],
     sampling_ratio: float,
     seed: int,
@@ -30,12 +29,16 @@ def create_dataset_splits(
 
     class_labels = set(labels)
 
-    train_shard_indices = create_shard_splits(
+    train_shard_indices_dict = create_shard_splits(
         dataset=dataset,
         train_indices=train_indices,
         class_labels=class_labels,
         sampling_ratio=sampling_ratio,
         seed=seed,
     )
+
+    train_shard_indices = [
+        train_shard_indices_dict[i] for i in range(len(train_shard_indices_dict))
+    ]
 
     return train_shard_indices, val_indices, test_indices
