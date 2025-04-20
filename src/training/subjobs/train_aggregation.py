@@ -4,13 +4,13 @@ from torch.utils.data import DataLoader
 from tqdm import tqdm
 from accelerate import Accelerator
 from common.logger import logger
-from models.sispa.sispa_embedding_aggregator import EmbeddingAggregator
+from models.sispa.sispa_embedding_aggregator import SISPAEmbeddingAggregator
 from training.subjobs.utils import compute_prediction_statistics
 
 
 def train_aggregation_classifier(
     accelerator: Accelerator,
-    aggregator: EmbeddingAggregator,
+    aggregator: SISPAEmbeddingAggregator,
     optimizer: torch.optim.Optimizer,
     training_embeddings_dataloader: DataLoader,
     validation_embeddings_dataloader: DataLoader,
@@ -24,7 +24,7 @@ def train_aggregation_classifier(
     Args:
         accelerator : Accelerator
             Accelerator to use for training
-        aggregator : nn.Module
+        aggregator : SISPAEmbeddingAggregator
             Embedding aggregator
         optimizer : torch.optim.Optimizer
             Optimizer for the embedding aggregator
@@ -120,7 +120,7 @@ def train_aggregation_classifier(
 @torch.no_grad()
 def validate_aggregation_training(
     accelerator: Accelerator,
-    prepared_aggregator: EmbeddingAggregator,
+    prepared_aggregator: SISPAEmbeddingAggregator,
     prepared_validation_embeddings_dataloader: DataLoader,
     loss_fn: nn.Module,
     epoch_idx: int,
@@ -134,7 +134,7 @@ def validate_aggregation_training(
     ----------
     accelerator : Accelerator
         Accelerator to use for validation
-    prepared_aggregator : EmbeddingAggregator
+    prepared_aggregator : SISPAEmbeddingAggregator
         Prepared aggregator to validate
     prepared_validation_embeddings_dataloader : DataLoader
         Prepared validation dataloader
