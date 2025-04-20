@@ -34,7 +34,6 @@ def create_dataset_splits(
         dataset=dataset,
         train_indices=train_indices,
         class_labels=class_labels,
-        num_shards=num_shards,
         sampling_ratio=sampling_ratio,
         seed=seed,
     )
