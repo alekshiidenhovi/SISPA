@@ -1,5 +1,6 @@
 import h5py
 import numpy as np
+import os
 import typing as T
 from common.types import TrainingStep, Operation
 
@@ -17,11 +18,8 @@ class SISPADatasetSplitsStorage:
 
     def __init__(self, storage_path: str):
         self.storage_path = storage_path
-        self.base_dir = "dataset_splits"
-        self.file = h5py.File(storage_path, "a")
-
-        if self.base_dir not in self.file:
-            self.file.create_group(self.base_dir)
+        self.base_file = "dataset_splits.hdf5"
+        self.file = h5py.File(os.path.join(storage_path, self.base_file), "a")
 
     def __del__(self):
         """Close the file when the object is deleted."""
@@ -29,7 +27,7 @@ class SISPADatasetSplitsStorage:
             self.file.close()
 
     def _get_split_dir(self, training_step: TrainingStep):
-        return f"{self.base_dir}/{training_step.value}"
+        return f"{training_step.value}"
 
     def _get_split_indices_path(self, training_step: TrainingStep):
         return f"{self._get_split_dir(training_step)}/indices"

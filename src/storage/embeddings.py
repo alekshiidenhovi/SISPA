@@ -2,6 +2,7 @@ import h5py
 import torch
 import numpy as np
 import typing as T
+import os
 from pydantic import BaseModel, Field
 from common.types import TrainingStep
 
@@ -29,11 +30,8 @@ class SISPAEmbeddingStorage:
     def __init__(self, storage_path: str, embedding_dim: int):
         self.storage_path = storage_path
         self.embedding_dim = embedding_dim
-        self.base_dir = "embeddings"
-        self.file = h5py.File(storage_path, "a")
-
-        if self.base_dir not in self.file:
-            self.file.create_group(self.base_dir)
+        self.base_file = "embeddings.hdf5"
+        self.file = h5py.File(os.path.join(storage_path, self.base_file), "a")
 
     def __del__(self):
         """Close the file when the object is deleted."""
@@ -42,7 +40,7 @@ class SISPAEmbeddingStorage:
 
     def _get_shard_group_name(self, training_step: TrainingStep, shard_idx: int) -> str:
         """Internal helper method to get the name of a shard group."""
-        return f"{self.base_dir}/{training_step.value}/shard_{shard_idx}"
+        return f"{training_step.value}/shard_{shard_idx}"
 
     def _get_shard_datapoint_path(
         self, training_step: TrainingStep, shard_idx: int, datapoint_id: str
