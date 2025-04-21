@@ -5,9 +5,9 @@ from einops import rearrange
 
 
 class ResNet(torch.nn.Module):
-    def __init__(self, num_blocks: int, embedding_dim: int):
+    def __init__(self, num_blocks: int, embedding_dim: int, in_channels: int = 1):
         super().__init__()
-        self.conv7 = Conv7(3, 32)
+        self.conv7 = Conv7(in_channels, 32)
 
         self.resnet_blocks1 = torch.nn.Sequential(
             *[ResnetBlock(32, 32) for _ in range(num_blocks)]
