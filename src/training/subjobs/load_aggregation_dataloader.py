@@ -15,7 +15,7 @@ def load_aggregation_dataloader(
     all_labels = torch.tensor([], dtype=torch.int64)
 
     for shard_idx in range(num_shards):
-        shard_embeddings_dict = embedding_storage.retrieve_shard(
+        shard_embeddings_dict = embedding_storage.retrieve_shard_embeddings(
             training_step=training_step, shard_idx=shard_idx
         )
         if shard_embeddings_dict is None:

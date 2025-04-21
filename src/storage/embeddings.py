@@ -108,7 +108,7 @@ class SISPAEmbeddingStorage:
             )
             dataset.attrs["label"] = label
 
-    def retrieve_shard(
+    def retrieve_shard_embeddings(
         self, training_step: TrainingStep, shard_idx: int
     ) -> T.Optional[T.Dict[str, EmbeddingData]]:
         """Retrieve all embeddings for a specific shard.
