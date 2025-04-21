@@ -36,8 +36,8 @@ def create_shard_splits(
 ) -> T.Dict[int, T.List[int]]:
     """
     Create shards of MNIST dataset where each shard has:
-    - 50% samples from a specific class
-    - 50% samples from other based on the class distribution
+    - sampling_ratio of samples from a specific class
+    - (1 - sampling_ratio) of samples from other classes
     - Each sample appears in exactly one shard (MECE principle)
 
     Parameters
