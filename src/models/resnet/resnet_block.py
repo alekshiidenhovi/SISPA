@@ -53,6 +53,15 @@ class ResnetBlock(torch.nn.Module):
         )
         self.batch_norm2 = torch.nn.BatchNorm2d(out_channels)
 
+        self.shortcut = None
+        if in_channels != out_channels:
+            self.shortcut = torch.nn.Sequential(
+                torch.nn.Conv2d(
+                    in_channels, out_channels, kernel_size=1, stride=1, padding=0
+                ),
+                torch.nn.BatchNorm2d(out_channels),
+            )
+
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """Forward pass of the residual block.
 
@@ -66,7 +75,13 @@ class ResnetBlock(torch.nn.Module):
         torch.Tensor
             Output tensor of shape (batch_size, out_channels, height, width)
         """
+        identity = x
+
         out1 = self.batch_norm1(self.conv1(x))
         out_relu1 = self.relu(out1)
         out2 = self.batch_norm2(self.conv2(out_relu1))
-        return self.relu(out2 + x)
+
+        if self.shortcut is not None:
+            identity = self.shortcut(identity)
+
+        return self.relu(out2 + identity)
