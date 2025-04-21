@@ -14,11 +14,17 @@ class ResNet(torch.nn.Module):
         )
 
         self.resnet_blocks2 = torch.nn.Sequential(
-            *[ResnetBlock(32, 64) for _ in range(num_blocks)]
+            *[
+                ResnetBlock(32, 64) if i == 0 else ResnetBlock(64, 64)
+                for i in range(num_blocks)
+            ]
         )
 
         self.resnet_blocks3 = torch.nn.Sequential(
-            *[ResnetBlock(64, 128) for _ in range(num_blocks)]
+            *[
+                ResnetBlock(64, 128) if i == 0 else ResnetBlock(128, 128)
+                for i in range(num_blocks)
+            ]
         )
 
         self.avg_pool = torch.nn.AdaptiveAvgPool2d(1)
