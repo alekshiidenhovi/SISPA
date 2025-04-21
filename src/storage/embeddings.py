@@ -53,7 +53,7 @@ class SISPAEmbeddingStorage:
         training_step: TrainingStep,
         shard_idx: int,
         datapoint_ids: T.List[str],
-        labels: T.List[str],
+        labels: torch.Tensor,
         embeddings: torch.Tensor,
     ):
         """Store embeddings for a specific shard and datapoints.
@@ -66,7 +66,7 @@ class SISPAEmbeddingStorage:
             Index of the shard
         datapoint_ids : list[str]
             ID of the datapoint
-        labels: list[str]
+        labels: torch.Tensor
             Labels of the datapoint
         embeddings : torch.Tensor
             Embedding tensor to store
@@ -92,14 +92,14 @@ class SISPAEmbeddingStorage:
 
         for idx in range(len(datapoint_ids)):
             datapoint_id = datapoint_ids[idx]
-            label = labels[idx]
-            embedding = embeddings[idx]
+            label = int(labels[idx].detach().cpu().item())
+            embedding_np = embeddings[idx].detach().cpu().numpy()
             datapoint_path = self._get_shard_datapoint_path(
                 training_step, shard_idx, datapoint_id
             )
             if datapoint_path in self.file:
                 del self.file[datapoint_path]
-            embedding_np = embedding.detach().cpu().numpy()
+
             dataset = self.file.create_dataset(
                 datapoint_path,
                 shape=embedding_np.shape,
@@ -121,7 +121,7 @@ class SISPAEmbeddingStorage:
         Returns
         -------
 
-        Dict[str, torch.Tensor]
+        Dict[str, EmbeddingData]
             Dictionary mapping datapoint IDs to embeddings
         """
         shard_group = self._get_shard_group_name(training_step, shard_idx)
