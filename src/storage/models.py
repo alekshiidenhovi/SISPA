@@ -76,7 +76,7 @@ class SISPAModelStorage:
         Returns:
             Name of the model artifact
         """
-        return f"{self._get_sharded_model_name(shard_id)}:latest"
+        return f"{self._get_sharded_model_name(shard_id)}-latest"
 
     def _get_aggregator_model_path(self) -> str:
         """
@@ -103,7 +103,7 @@ class SISPAModelStorage:
         Returns:
             Name of the model artifact
         """
-        return "aggregator_model:latest"
+        return "aggregator_model-latest"
 
     def save_sharded_model(
         self,
