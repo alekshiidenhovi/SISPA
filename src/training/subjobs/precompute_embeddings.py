@@ -2,6 +2,7 @@ import torch
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 from accelerate import Accelerator
+from common.types import TrainingStep
 
 
 @torch.no_grad()
@@ -10,6 +11,7 @@ def precompute_embeddings(
     trained_model: torch.nn.Module,
     dataloader: DataLoader,
     shard_idx: int,
+    stage: TrainingStep,
 ):
     """
     Precompute embeddings for a dataset using a trained model.
@@ -38,12 +40,13 @@ def precompute_embeddings(
     all_labels = torch.tensor([], device=accelerator.device, dtype=torch.int64)
 
     dataloader_with_progress_bar = tqdm(
-        prepared_dataloader, desc=f"Precomputing embeddings for shard {shard_idx}"
+        prepared_dataloader,
+        desc=f"Precomputing {stage.value.lower()} embeddings for shard {shard_idx}",
     )
     for batch_idx, (images, labels) in enumerate(dataloader_with_progress_bar):
         with accelerator.autocast():
             dataloader_with_progress_bar.set_description(
-                f"Precomputing embeddings for shard {shard_idx} - Batch {batch_idx}"
+                f"Precomputing {stage.value.lower()} embeddings for shard {shard_idx} - Batch {batch_idx}"
             )
 
             embeddings = prepared_trained_model(images)
