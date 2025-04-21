@@ -136,7 +136,7 @@ class SISPAEmbeddingStorage:
             label = self.file[datapoint_path].attrs["label"]
             embedding_np = self.file[datapoint_path][()]
             embedding_dict[datapoint_id] = EmbeddingData(
-                label=int(label[0]),
+                label=int(label),
                 embedding=embedding_np.tolist(),
             )
 
