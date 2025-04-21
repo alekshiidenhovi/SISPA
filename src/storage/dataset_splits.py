@@ -20,28 +20,32 @@ class SISPADatasetSplitsStorage:
         self.storage_path = storage_path
         self.base_file = "dataset_splits.hdf5"
         self.file = h5py.File(os.path.join(storage_path, self.base_file), "a")
+        self.shard_indices_metadata_name = "shard_indices"
 
     def __del__(self):
         """Close the file when the object is deleted."""
         if hasattr(self, "file"):
             self.file.close()
 
-    def _get_split_dir(self, training_step: TrainingStep):
+    def _get_split_path(self, training_step: TrainingStep):
         return f"{training_step.value}"
 
     def _get_split_indices_path(self, training_step: TrainingStep):
-        return f"{self._get_split_dir(training_step)}/indices"
+        return f"{self._get_split_path(training_step)}/indices"
 
-    def _get_shards_dir(self):
-        return f"{self._get_split_dir(TrainingStep.TRAINING)}/shards"
+    def _get_shards_path(self):
+        return f"{self._get_split_path(TrainingStep.TRAINING)}/shards"
 
-    def _get_shard_dir(self, shard_idx: int) -> str:
-        return f"{self._get_shards_dir()}/{shard_idx}"
+    def _get_shard_path(self, shard_idx: int) -> str:
+        return f"{self._get_shards_path()}/{shard_idx}"
 
-    def _create_split_dir(self, training_step: TrainingStep):
-        split_dir = self._get_split_dir(training_step)
-        if split_dir not in self.file:
-            self.file.create_group(split_dir)
+    def _get_shard_indices_path(self, shard_idx: int) -> str:
+        return f"{self._get_shard_path(shard_idx)}/indices"
+
+    def _create_split_group(self, training_step: TrainingStep):
+        split_path = self._get_split_path(training_step)
+        if split_path not in self.file:
+            self.file.create_group(split_path)
 
     def _update_shard_indices_metadata(self, shard_idx: int, operation: Operation):
         """Update the shard indices metadata in the training dataset.
@@ -53,20 +57,26 @@ class SISPADatasetSplitsStorage:
         operation : Operation
             Operation to perform on the shard index
         """
-        train_path = self._get_split_indices_path(TrainingStep.TRAINING)
-        if train_path not in self.file:
-            self.file.create_dataset(train_path, shape=(0,), dtype=np.int64)
+        train_indices_path = self._get_split_indices_path(TrainingStep.TRAINING)
+        if train_indices_path not in self.file:
+            self.file.create_dataset(train_indices_path, shape=(0,), dtype=np.int64)
 
-        shard_indices = self.file[train_path].attrs.get("shard_indices", [])
+        shard_indices: np.ndarray = self.file[train_indices_path].attrs.get(
+            self.shard_indices_metadata_name, np.array([], dtype=np.int64)
+        )
 
         if operation == Operation.ADD and shard_idx not in shard_indices:
-            shard_indices.append(shard_idx)
+            shard_indices = np.append(shard_indices, shard_idx)
             shard_indices.sort()
         elif operation == Operation.REMOVE and shard_idx in shard_indices:
-            shard_indices.remove(shard_idx)
+            shard_indices = np.delete(
+                shard_indices, np.where(shard_indices == shard_idx)
+            )
 
         # Store updated shard indices
-        self.file[train_path].attrs["shard_indices"] = shard_indices
+        self.file[train_indices_path].attrs[self.shard_indices_metadata_name] = (
+            shard_indices
+        )
 
     def store_split(self, training_step: TrainingStep, indices: T.List[int]):
         """Store split indices.
@@ -76,15 +86,15 @@ class SISPADatasetSplitsStorage:
         indices : list[int]
             Indices of samples in the training split
         """
-        self._create_split_dir(training_step)
+        self._create_split_group(training_step)
 
-        split_path = self._get_split_indices_path(training_step)
-        if split_path in self.file:
-            del self.file[split_path]
+        split_indices_path = self._get_split_indices_path(training_step)
+        if split_indices_path in self.file:
+            del self.file[split_indices_path]
 
         indices_np = np.array(indices, dtype=np.int64)
         self.file.create_dataset(
-            split_path,
+            split_indices_path,
             shape=indices_np.shape,
             data=indices_np,
             dtype=np.int64,
@@ -100,19 +110,23 @@ class SISPADatasetSplitsStorage:
         indices : list[int]
             Indices of samples in the shard
         """
-        shards_dir = self._get_shards_dir()
-        if shards_dir not in self.file:
-            self.file.create_group(shards_dir)
+        shards_path = self._get_shards_path()
+        if shards_path not in self.file:
+            self.file.create_group(shards_path)
 
-        shard_path = self._get_shard_dir(shard_idx)
+        shard_path = self._get_shard_path(shard_idx)
         if shard_path in self.file:
             del self.file[shard_path]
 
-        indices_np = np.array(indices, dtype=np.int64)
+        shard_indices_path = self._get_shard_indices_path(shard_idx)
+        if shard_indices_path in self.file:
+            del self.file[shard_indices_path]
+
+        shard_indices_np = np.array(indices, dtype=np.int64)
         self.file.create_dataset(
-            shard_path,
-            shape=indices_np.shape,
-            data=indices_np,
+            shard_indices_path,
+            shape=shard_indices_np.shape,
+            data=shard_indices_np,
             dtype=np.int64,
         )
 
@@ -145,7 +159,9 @@ class SISPADatasetSplitsStorage:
         for shard_idx, shard_indices in enumerate(train_shard_indices):
             self.store_shard(shard_idx, shard_indices)
 
-    def retrieve_split(self, training_step: TrainingStep) -> T.Optional[T.List[int]]:
+    def retrieve_split_indices(
+        self, training_step: TrainingStep
+    ) -> T.Optional[T.List[int]]:
         """Retrieve the split indices.
 
         Returns
@@ -153,14 +169,14 @@ class SISPADatasetSplitsStorage:
         list[int] or None
             Indices of the split, or None if not found
         """
-        split_path = self._get_split_indices_path(training_step)
-        if split_path not in self.file:
+        split_indices_path = self._get_split_indices_path(training_step)
+        if split_indices_path not in self.file:
             return None
 
-        indices_np = self.file[split_path][()]
+        indices_np = self.file[split_indices_path][()]
         return indices_np.tolist()
 
-    def retrieve_shard(self, shard_idx: int) -> T.Optional[T.List[int]]:
+    def retrieve_shard_indices(self, shard_idx: int) -> T.Optional[T.List[int]]:
         """Retrieve a dataset shard.
 
         Parameters
@@ -173,14 +189,14 @@ class SISPADatasetSplitsStorage:
         list[int] or None
             Indices of the shard, or None if not found
         """
-        shard_path = self._get_shard_path(shard_idx)
-        if shard_path not in self.file:
+        shard_indices_path = self._get_shard_indices_path(shard_idx)
+        if shard_indices_path not in self.file:
             return None
 
-        indices_np = self.file[shard_path][()]
-        return indices_np.tolist()
+        shard_indices_np = self.file[shard_indices_path][()]
+        return shard_indices_np.tolist()
 
-    def retrieve_all_splits(
+    def retrieve_all_splits_indices(
         self,
     ) -> T.Tuple[T.List[T.List[int]], T.List[int], T.List[int], T.List[int]]:
         """Retrieve all dataset splits.
@@ -190,9 +206,9 @@ class SISPADatasetSplitsStorage:
         tuple
             Tuple of (train_shard_indices, val_indices, test_indices)
         """
-        train_indices = self.retrieve_split(TrainingStep.TRAINING)
-        val_indices = self.retrieve_split(TrainingStep.VALIDATION)
-        test_indices = self.retrieve_split(TrainingStep.TESTING)
+        train_indices = self.retrieve_split_indices(TrainingStep.TRAINING)
+        val_indices = self.retrieve_split_indices(TrainingStep.VALIDATION)
+        test_indices = self.retrieve_split_indices(TrainingStep.TESTING)
         shard_indices = self.list_shards()
 
         if train_indices is None:
@@ -206,10 +222,10 @@ class SISPADatasetSplitsStorage:
 
         train_shard_indices = []
         for shard_idx in shard_indices:
-            shard = self.retrieve_shard(shard_idx)
-            if shard is None:
+            shard_indices = self.retrieve_shard_indices(shard_idx)
+            if shard_indices is None:
                 raise ValueError(f"Shard {shard_idx} not found")
-            train_shard_indices.append(shard.indices)
+            train_shard_indices.append(shard_indices)
 
         return train_shard_indices, train_indices, val_indices, test_indices
 
@@ -221,7 +237,7 @@ class SISPADatasetSplitsStorage:
         bool
             True if removed successfully, False if not found
         """
-        split_path = self._get_split_indices_path(training_step)
+        split_path = self._get_split_path(training_step)
         if split_path in self.file:
             del self.file[split_path]
             return True
@@ -240,7 +256,7 @@ class SISPADatasetSplitsStorage:
         bool
             True if removed successfully, False if not found
         """
-        shard_path = self._get_shard_path(shard_idx)
+        shard_path = self._get_shard_dir(shard_idx)
         if shard_path in self.file:
             del self.file[shard_path]
             self._update_shard_indices_metadata(shard_idx, operation=Operation.REMOVE)
@@ -255,9 +271,11 @@ class SISPADatasetSplitsStorage:
         list[int]
             List of shard indices
         """
-        train_path = self._get_split_indices_path(TrainingStep.TRAINING)
-        if train_path not in self.file:
+        train_indices_path = self._get_split_indices_path(TrainingStep.TRAINING)
+        if train_indices_path not in self.file:
             return []
 
-        shard_indices = self.file[train_path].attrs["shard_indices"]
+        shard_indices = self.file[train_indices_path].attrs[
+            self.shard_indices_metadata_name
+        ]
         return sorted(shard_indices)
