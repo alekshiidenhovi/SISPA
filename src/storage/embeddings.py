@@ -8,7 +8,7 @@ from common.types import TrainingStep
 
 
 class EmbeddingData(BaseModel):
-    label: str = Field(description="Label of the datapoint")
+    label: int = Field(description="Label of the datapoint")
     embedding: T.List[float] = Field(
         description="Embedding of the datapoint in list format"
     )
@@ -136,7 +136,7 @@ class SISPAEmbeddingStorage:
             label = self.file[datapoint_path].attrs["label"]
             embedding_np = self.file[datapoint_path][()]
             embedding_dict[datapoint_id] = EmbeddingData(
-                label=label,
+                label=int(label[0]),
                 embedding=embedding_np.tolist(),
             )
 
