@@ -100,13 +100,13 @@ class SISPAEmbeddingStorage:
             if datapoint_path in self.file:
                 del self.file[datapoint_path]
 
-            dataset = self.file.create_dataset(
+            self.file.create_dataset(
                 datapoint_path,
                 shape=embedding_np.shape,
                 data=embedding_np,
                 dtype=np.float32,
             )
-            dataset.attrs["label"] = label
+            self.file[datapoint_path].attrs["label"] = label
 
     def retrieve_shard_embeddings(
         self, training_step: TrainingStep, shard_idx: int
