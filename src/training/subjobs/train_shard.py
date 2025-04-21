@@ -101,6 +101,7 @@ def train_sharded_embedding_model(
                     shard_idx=shard_idx,
                     batch_idx=batch_idx,
                     epochs=epochs,
+                    wandb_run=wandb_run,
                 )
 
                 prepared_embedding_model.train()
