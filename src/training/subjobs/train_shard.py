@@ -2,10 +2,12 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 import wandb
+import wandb.wandb_run
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 from accelerate import Accelerator
 from training.subjobs.utils import compute_prediction_statistics
+from common.tracking import init_wandb_run
 
 
 def train_sharded_embedding_model(
@@ -19,7 +21,7 @@ def train_sharded_embedding_model(
     val_batch_interval: int,
     epochs: int,
     shard_idx: int,
-    wandb_run: wandb.wandb_run.Run,
+    experiment_group_name: str,
 ) -> nn.Module:
     """
     Train a model on a specific shard of data.
@@ -43,13 +45,17 @@ def train_sharded_embedding_model(
             Index of the shard to train on
         epochs : int
             Number of epochs to train for
-        wandb_run : wandb.wandb_run.Run
-            W&B run to use for logging
+        experiment_group_name : str
+            Name of the experiment group
 
     Returns:
         nn.Module
             Trained embedding model on the CPU
     """
+    wandb_run = init_wandb_run(
+        experiment_group_name=experiment_group_name,
+        experiment_name=f"Shard {shard_idx} training",
+    )
     prepared_embedding_model.train()
     prepared_classifier.train()
     for epoch_idx in range(epochs):

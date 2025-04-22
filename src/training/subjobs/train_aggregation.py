@@ -1,11 +1,13 @@
 import torch
 import torch.nn as nn
 import wandb
+import wandb.wandb_run
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 from accelerate import Accelerator
 from models.sispa.sispa_embedding_aggregator import SISPAEmbeddingAggregator
 from training.subjobs.utils import compute_prediction_statistics
+from common.tracking import init_wandb_run
 
 
 def train_aggregation_classifier(
@@ -17,7 +19,7 @@ def train_aggregation_classifier(
     loss_fn: nn.Module,
     val_batch_interval: int,
     epochs: int,
-    wandb_run: wandb.wandb_run.Run,
+    experiment_group_name: str,
 ):
     """
     Train an aggregation classifier on precomputed embeddings from multiple shards.
@@ -39,13 +41,17 @@ def train_aggregation_classifier(
             Interval for validation, the model is validated every `val_batch_interval` batches
         epochs : int
             Number of epochs to train for
-        wandb_run : wandb.wandb_run.Run
-            W&B run to use for logging
+        experiment_group_name : str
+            Name of the experiment group
 
     Returns:
         nn.Module
             Trained embedding aggregator on the CPU
     """
+    wandb_run = init_wandb_run(
+        experiment_group_name=experiment_group_name,
+        experiment_name="Aggregator training",
+    )
     prepared_aggregator.train()
     for epoch_idx in range(epochs):
         training_progress_bar = tqdm(prepared_training_embeddings_dataloader)

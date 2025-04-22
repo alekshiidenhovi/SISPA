@@ -4,7 +4,7 @@ import os
 import typing as T
 from pathlib import Path
 from safetensors.torch import load_file, save_file
-import wandb.wandb_run
+from common.tracking import init_wandb_run
 
 
 class SISPAModelStorage:
@@ -109,7 +109,7 @@ class SISPAModelStorage:
         self,
         sharded_model: torch.nn.Module,
         shard_id: str,
-        wandb_run: wandb.wandb_run.Run,
+        experiment_group_name: str,
     ) -> str:
         """
         Save a PyTorch model trained on a SISA shard to both local storage and W&B.
@@ -117,7 +117,7 @@ class SISPAModelStorage:
         Args:
             sharded_model: The PyTorch model to save
             shard_id: Identifier for the SISA shard
-            wandb_run: W&B run to use for uploading
+            experiment_group_name: Name of the experiment group
 
         Returns:
             Path to the locally saved model file
@@ -135,6 +135,7 @@ class SISPAModelStorage:
             metadata=metadata,
         )
         artifact.add_file(save_path)
+        wandb_run = init_wandb_run(experiment_group_name=experiment_group_name)
         wandb_run.log_artifact(artifact)
 
         return save_path
@@ -169,7 +170,6 @@ class SISPAModelStorage:
         self,
         sharded_model: torch.nn.Module,
         shard_id: str,
-        wandb_run: wandb.wandb_run.Run,
         wandb_artifact_name: T.Optional[str] = None,
     ) -> torch.nn.Module:
         """
@@ -187,7 +187,7 @@ class SISPAModelStorage:
         if wandb_artifact_name is None:
             wandb_artifact_name = self._get_sharded_model_artifact_name(shard_id)
 
-        artifact: wandb.Artifact = wandb_run.use_artifact(wandb_artifact_name)
+        artifact: wandb.Artifact = wandb.use_artifact(wandb_artifact_name)
         artifact_dir = artifact.download()
 
         safetensors_files = list(Path(artifact_dir).glob("*.safetensors"))
@@ -221,9 +221,7 @@ class SISPAModelStorage:
         metadata = load_file(load_path, metadata_only=True)
         return metadata
 
-    def get_sharded_model_wandb_metadata(
-        self, shard_id: str, wandb_run: wandb.wandb_run.Run
-    ) -> T.Dict:
+    def get_sharded_model_wandb_metadata(self, shard_id: str) -> T.Dict:
         """
         Get metadata for a specific SISA shard model from W&B.
 
@@ -234,20 +232,20 @@ class SISPAModelStorage:
             Dictionary of metadata
         """
         model_artifact_name = self._get_sharded_model_artifact_name(shard_id)
-        artifact = wandb_run.use_artifact(model_artifact_name)
+        artifact = wandb.use_artifact(model_artifact_name)
         return artifact.metadata
 
     def save_aggregator_model(
         self,
         aggregator_model: torch.nn.Module,
-        wandb_run: wandb.wandb_run.Run,
+        experiment_group_name: str,
     ) -> str:
         """
         Save a PyTorch aggregator model to both local storage and W&B.
 
         Args:
             aggregator_model: The PyTorch aggregator model to save
-            wandb_run: W&B run to use for uploading
+            experiment_group_name: Name of the experiment group
 
         Returns:
             Path to the locally saved model file
@@ -264,6 +262,7 @@ class SISPAModelStorage:
             metadata=metadata,
         )
         artifact.add_file(save_path)
+        wandb_run = init_wandb_run(experiment_group_name=experiment_group_name)
         wandb_run.log_artifact(artifact)
 
         return save_path
@@ -294,7 +293,6 @@ class SISPAModelStorage:
     def load_aggregator_model_wandb(
         self,
         aggregator_model: torch.nn.Module,
-        wandb_run: wandb.wandb_run.Run,
         wandb_artifact_name: T.Optional[str] = None,
     ) -> torch.nn.Module:
         """
@@ -311,7 +309,7 @@ class SISPAModelStorage:
         if wandb_artifact_name is None:
             wandb_artifact_name = self._get_aggregator_model_artifact_name()
 
-        artifact: wandb.Artifact = wandb_run.use_artifact(wandb_artifact_name)
+        artifact: wandb.Artifact = wandb.use_artifact(wandb_artifact_name)
         artifact_dir = artifact.download()
 
         safetensors_files = list(Path(artifact_dir).glob("*.safetensors"))
@@ -341,9 +339,7 @@ class SISPAModelStorage:
         metadata = load_file(load_path, metadata_only=True)
         return metadata
 
-    def get_aggregator_model_wandb_metadata(
-        self, wandb_run: wandb.wandb_run.Run
-    ) -> T.Dict:
+    def get_aggregator_model_wandb_metadata(self) -> T.Dict:
         """
         Get metadata for the aggregator model from W&B.
 
@@ -353,7 +349,7 @@ class SISPAModelStorage:
         Returns:
             Dictionary of metadata
         """
-        artifact: wandb.Artifact = wandb_run.use_artifact(
+        artifact: wandb.Artifact = wandb.use_artifact(
             self._get_aggregator_model_artifact_name()
         )
         return artifact.metadata

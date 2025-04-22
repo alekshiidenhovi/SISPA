@@ -1,16 +1,14 @@
 import typing as T
 import torch
-import wandb
 import uuid
 import click
 import copy
+import datetime
 from accelerate import Accelerator
 from torch.utils.data import DataLoader, Subset, Dataset
 from torchvision import datasets, transforms
 from prefect import flow, task
 from prefect.cache_policies import NO_CACHE
-import wandb.wandb_run
-from common.tracking import init_wandb_run
 from common.types import TrainingStep
 from models.resnet import ResNet
 from models.sispa import (
@@ -109,7 +107,7 @@ def train_shards_task(
     classifiers: T.List[torch.nn.Module],
     loss_fn: torch.nn.Module,
     epochs: int,
-    wandb_run: wandb.wandb_run.Run,
+    experiment_group_name: str,
 ):
     for shard_idx, (
         untrained_embedding_model,
@@ -149,13 +147,13 @@ def train_shards_task(
             shard_idx=shard_idx,
             val_batch_interval=val_batch_interval,
             epochs=epochs,
-            wandb_run=wandb_run,
+            experiment_group_name=experiment_group_name,
         )
 
         model_storage.save_sharded_model(
             sharded_model=trained_embedding_model,
             shard_id=f"shard_{shard_idx}",
-            wandb_run=wandb_run,
+            experiment_group_name=experiment_group_name,
         )
 
         (
@@ -273,7 +271,7 @@ def train_aggregator_task(
     val_batch_interval: int,
     epochs: int,
     model_storage: SISPAModelStorage,
-    wandb_run: wandb.wandb_run.Run,
+    experiment_group_name: str,
 ):
     (
         prepared_aggregator,
@@ -296,12 +294,12 @@ def train_aggregator_task(
         loss_fn=loss_fn,
         val_batch_interval=val_batch_interval,
         epochs=epochs,
-        wandb_run=wandb_run,
+        experiment_group_name=experiment_group_name,
     )
 
     model_storage.save_aggregator_model(
         aggregator_model=trained_aggregator,
-        wandb_run=wandb_run,
+        experiment_group_name=experiment_group_name,
     )
 
     (
@@ -318,7 +316,7 @@ def train_aggregator_task(
 
 
 @click.command()
-@click.option("--epochs", type=int, default=1)
+@click.option("--epochs", type=int, default=8)
 @click.option("--num-shards", type=int, default=10)
 @click.option(
     "--train-val-test-split",
@@ -355,7 +353,8 @@ def naive_retraining(
     storage_path: str,
     val_batch_interval: int,
 ):
-    wandb_run = init_wandb_run()
+    current_datetime = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+    experiment_group_name = f"naive_retraining-{current_datetime}-{num_shards}_shards-{epochs}_epochs-{embedding_dim}_embedding_dim-{hidden_dim}_hidden_dim-{learning_rate}_learning_rate-{weight_decay}_weight_decay"
 
     accelerator = Accelerator()
     model_storage = SISPAModelStorage(storage_path=storage_path)
@@ -433,7 +432,7 @@ def naive_retraining(
         classifiers=classifiers,
         loss_fn=loss_fn,
         epochs=epochs,
-        wandb_run=wandb_run,
+        experiment_group_name=experiment_group_name,
     )
 
     precompute_embeddings_task(
@@ -464,7 +463,7 @@ def naive_retraining(
         val_batch_interval=val_batch_interval,
         epochs=epochs,
         model_storage=model_storage,
-        wandb_run=wandb_run,
+        experiment_group_name=experiment_group_name,
     )
 
 
