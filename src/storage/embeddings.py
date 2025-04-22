@@ -78,7 +78,16 @@ class SISPAEmbeddingStorage:
     def initialize_datapoint_ids(
         self, training_step: TrainingStep, datapoint_ids: T.List[str]
     ):
-        """Internal: Create global ID and mask datasets."""
+        """Initialize stepwise ID and mask datasets.
+
+        If the datasets already exist, they are deleted and recreated.
+
+        Args:
+            training_step : TrainingStep
+                Training step to initialize
+            datapoint_ids : List[str]
+                List of datapoint IDs
+        """
         split_group_path = self._get_split_group_path(training_step)
         split_group = self.file.require_group(split_group_path)
 
@@ -89,6 +98,11 @@ class SISPAEmbeddingStorage:
 
         ids_np = np.array(datapoint_ids, dtype=h5py.string_dtype(encoding="utf-8"))
         valid_mask_np = np.ones(num_datapoints, dtype=bool)
+
+        if self.ids_dataset_name in split_group:
+            del split_group[self.ids_dataset_name]
+        if self.mask_dataset_name in split_group:
+            del split_group[self.mask_dataset_name]
 
         split_group.create_dataset(
             self.ids_dataset_name,
