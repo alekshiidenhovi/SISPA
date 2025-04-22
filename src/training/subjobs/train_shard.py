@@ -81,6 +81,7 @@ def train_sharded_embedding_model(
                     training_metrics = {
                         "training_loss": loss.item(),
                         "training_accuracy": num_correct / num_predicted,
+                        "shard_idx": shard_idx,
                     }
 
                     progress_bar.set_postfix(training_metrics)
@@ -187,6 +188,7 @@ def validate_shard_training(
     validation_metrics = {
         "validation_loss": val_loss,
         "validation_accuracy": val_accuracy,
+        "shard_idx": shard_idx,
     }
     wandb_run.log(validation_metrics)
 
