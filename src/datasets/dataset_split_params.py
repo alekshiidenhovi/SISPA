@@ -15,7 +15,7 @@ class BaseDatasetSplitStrategyParams(BaseModel):
 
 
 class ClassInformedDatasetSplitStrategyParams(BaseDatasetSplitStrategyParams):
-    sampling_ratio: float = Field(
+    class_informed_strategy_sampling_ratio: float = Field(
         description="Proportion of samples that should go to each class's dedicated shard"
     )
 
