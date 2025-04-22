@@ -2,26 +2,22 @@ import typing as T
 import math
 import numpy as np
 from collections import defaultdict
-from torch.utils.data import Dataset, Subset
+from torch.utils.data import Subset
 from sklearn.model_selection import train_test_split
+from datasets.dataset_split_params import ClassInformedDatasetSplitStrategyParams
+from datasets.choose_dataset_split_strategy import SHARDED_DATASET_SPLITS
 
 
 def create_class_informed_dataset_splits(
-    dataset: Dataset,
-    train_val_test_split: T.Tuple[float, float, float],
-    sampling_ratio: float,
-    seed: int,
-) -> T.Tuple[T.List[T.List[int]], T.List[int], T.List[int]]:
+    class_informed_params: ClassInformedDatasetSplitStrategyParams,
+) -> SHARDED_DATASET_SPLITS:
     """Creates stratified train/val/test splits and class-informed training shards.
 
     Splits a dataset into train, validation and test sets while maintaining class balance.
     The training set is further divided into shards, where each shard focuses on a specific class.
 
     Args:
-        dataset: The source dataset to split
-        train_val_test_split: Tuple of (train_ratio, val_ratio, test_ratio) that sum to 1.0
-        sampling_ratio: Proportion of samples that should go to each class's dedicated shard
-        seed: Random seed for reproducibility
+        class_informed_params: The parameters for the class-informed dataset split strategy
 
     Returns:
         Tuple containing:
@@ -29,12 +25,16 @@ def create_class_informed_dataset_splits(
         - val_indices: List of indices for the validation set
         - test_indices: List of indices for the test set
     """
-    train_ratio, val_ratio, test_ratio = train_val_test_split
-    indices = list(range(len(dataset)))
-    labels = [dataset[i][1] for i in indices]
+    train_ratio, val_ratio, test_ratio = class_informed_params.train_val_test_split
+    indices = list(range(len(class_informed_params.dataset)))
+    labels = [class_informed_params.dataset[i][1] for i in indices]
 
     train_val_indices, test_indices, train_val_labels, _ = train_test_split(
-        indices, labels, test_size=test_ratio, stratify=labels, random_state=seed
+        indices,
+        labels,
+        test_size=test_ratio,
+        stratify=labels,
+        random_state=class_informed_params.seed,
     )
 
     val_ratio_adjusted = val_ratio / (train_ratio + val_ratio)
@@ -43,28 +43,24 @@ def create_class_informed_dataset_splits(
         train_val_labels,
         test_size=val_ratio_adjusted,
         stratify=train_val_labels,
-        random_state=seed,
+        random_state=class_informed_params.seed,
     )
 
     class_labels = set(labels)
 
     train_shard_indices = create_class_informed_shard_splits(
-        dataset=dataset,
+        class_informed_params=class_informed_params,
         train_indices=train_indices,
         class_labels=class_labels,
-        sampling_ratio=sampling_ratio,
-        seed=seed,
     )
 
     return train_shard_indices, val_indices, test_indices
 
 
 def create_class_informed_shard_splits(
-    dataset: Dataset,
+    class_informed_params: ClassInformedDatasetSplitStrategyParams,
     train_indices: T.List[int],
     class_labels: T.Set[int],
-    sampling_ratio: float,
-    seed: int,
 ) -> T.List[T.List[int]]:
     """
     Creates balanced shards of a dataset where each shard focuses on a specific class.
@@ -75,19 +71,17 @@ def create_class_informed_shard_splits(
     - This ensures each sample appears in exactly one shard (Mutually Exclusive Collectively Exhaustive)
 
     Args:
-        dataset: The source dataset to create shards from
+        class_informed_params: The parameters for the class-informed dataset split strategy
         train_indices: List of indices for the training split
         class_labels: Set of all class labels in the dataset
-        sampling_ratio: Proportion of samples that should go to each class's dedicated shard
-        seed: Random seed for reproducibility
 
     Returns:
         List of lists, where each inner list contains indices for a class-focused shard
     """
-    np.random.seed(seed)
+    np.random.seed(class_informed_params.seed)
 
     original_indices_by_class = defaultdict(list)
-    subset_dataset = Subset(dataset, train_indices)
+    subset_dataset = Subset(class_informed_params.dataset, train_indices)
     shards = [[] for _ in range(len(class_labels))]
 
     for subset_idx, (_, label) in enumerate(subset_dataset):
@@ -103,7 +97,7 @@ def create_class_informed_shard_splits(
             class_labels=class_labels,
             class_label=label,
             num_samples=num_samples,
-            sampling_ratio=sampling_ratio,
+            sampling_ratio=class_informed_params.class_informed_strategy_sampling_ratio,
         )
 
         for i in range(len(class_labels)):

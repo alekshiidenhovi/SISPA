@@ -1,16 +1,15 @@
 import typing as T
 import numpy as np
 from collections import defaultdict
-from torch.utils.data import Dataset, Subset
+from torch.utils.data import Subset
 from sklearn.model_selection import train_test_split
+from datasets.dataset_split_params import EqualDatasetSplitStrategyParams
+from datasets.choose_dataset_split_strategy import SHARDED_DATASET_SPLITS
 
 
 def create_equal_distribution_dataset_splits(
-    dataset: Dataset,
-    train_val_test_split: T.Tuple[float, float, float],
-    num_shards: int,
-    seed: int,
-) -> T.Tuple[T.List[T.List[int]], T.List[int], T.List[int]]:
+    equal_params: EqualDatasetSplitStrategyParams,
+) -> SHARDED_DATASET_SPLITS:
     """Creates stratified train/val/test splits and equal training shards.
 
     Splits a dataset into train, validation and test sets while maintaining class balance.
@@ -18,10 +17,7 @@ def create_equal_distribution_dataset_splits(
     of all classes, proportional to the original dataset's class distribution.
 
     Args:
-        dataset: The source dataset to split
-        train_val_test_split: Tuple of (train_ratio, val_ratio, test_ratio) that sum to 1.0
-        num_shards: Number of equal shards to create from the training set
-        seed: Random seed for reproducibility
+        equal_params: The parameters for the equal dataset split strategy
 
     Returns:
         Tuple containing:
@@ -29,12 +25,16 @@ def create_equal_distribution_dataset_splits(
         - val_indices: List of indices for the validation set
         - test_indices: List of indices for the test set
     """
-    train_ratio, val_ratio, test_ratio = train_val_test_split
-    indices = list(range(len(dataset)))
-    labels = [dataset[i][1] for i in indices]
+    train_ratio, val_ratio, test_ratio = equal_params.train_val_test_split
+    indices = list(range(len(equal_params.dataset)))
+    labels = [equal_params.dataset[i][1] for i in indices]
 
     train_val_indices, test_indices, train_val_labels, _ = train_test_split(
-        indices, labels, test_size=test_ratio, stratify=labels, random_state=seed
+        indices,
+        labels,
+        test_size=test_ratio,
+        stratify=labels,
+        random_state=equal_params.seed,
     )
 
     val_ratio_adjusted = val_ratio / (train_ratio + val_ratio)
@@ -43,24 +43,21 @@ def create_equal_distribution_dataset_splits(
         train_val_labels,
         test_size=val_ratio_adjusted,
         stratify=train_val_labels,
-        random_state=seed,
+        random_state=equal_params.seed,
     )
 
     train_shard_indices = create_equal_distribution_shard_splits(
-        dataset=dataset,
+        dataset=equal_params.dataset,
         train_indices=train_indices,
-        num_shards=num_shards,
-        seed=seed,
+        num_shards=equal_params.num_shards,
+        seed=equal_params.seed,
     )
 
     return train_shard_indices, val_indices, test_indices
 
 
 def create_equal_distribution_shard_splits(
-    dataset: Dataset,
-    train_indices: T.List[int],
-    num_shards: int,
-    seed: int,
+    equal_params: EqualDatasetSplitStrategyParams,
 ) -> T.List[T.List[int]]:
     """
     Creates balanced shards of a dataset where each shard has the same class distribution.
@@ -69,22 +66,20 @@ def create_equal_distribution_shard_splits(
     maintaining the original dataset's class distribution proportions.
 
     Args:
-        dataset: The source dataset to create shards from
-        train_indices: List of indices for the training split
-        num_shards: Number of balanced shards to create
-        seed: Random seed for reproducibility
+        equal_params: The parameters for the equal dataset split strategy
+
 
     Returns:
         List of lists, where each inner list contains indices for a balanced shard
     """
-    np.random.seed(seed)
+    np.random.seed(equal_params.seed)
 
     original_indices_by_class = defaultdict(list)
-    subset_dataset = Subset(dataset, train_indices)
-    shards = [[] for _ in range(num_shards)]
+    subset_dataset = Subset(equal_params.dataset, equal_params.train_indices)
+    shards = [[] for _ in range(equal_params.num_shards)]
 
     for subset_idx, (_, label) in enumerate(subset_dataset):
-        original_idx = train_indices[subset_idx]
+        original_idx = equal_params.train_indices[subset_idx]
         original_indices_by_class[label].append(original_idx)
 
     for label, original_class_indices in original_indices_by_class.items():
@@ -92,7 +87,7 @@ def create_equal_distribution_shard_splits(
         np.random.shuffle(original_indices)
 
         for i, original_idx in enumerate(original_indices):
-            shard_idx = i % num_shards
+            shard_idx = i % equal_params.num_shards
             shards[shard_idx].append(original_idx)
 
     return shards

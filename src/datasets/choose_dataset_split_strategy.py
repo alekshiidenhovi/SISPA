@@ -9,9 +9,10 @@ from datasets.dataset_split_params import (
     EqualDatasetSplitStrategyParams,
 )
 
+SHARDED_DATASET_SPLITS = T.Tuple[T.List[T.List[int]], T.List[int], T.List[int]]
 DATASET_SPLIT_STRATEGY_FUNCTION = T.Callable[
     [Dataset, T.Tuple[float, float, float], int, int],
-    T.Tuple[T.List[T.List[int]], T.List[int], T.List[int]],
+    SHARDED_DATASET_SPLITS,
 ]
 
 
