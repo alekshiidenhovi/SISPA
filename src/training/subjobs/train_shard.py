@@ -56,7 +56,7 @@ def train_sharded_embedding_model(
         prepared_optimizer,
         prepared_train_dataloader,
         prepared_val_dataloader,
-    ) = accelerator.prepare(
+    ) = accelerator.clear(
         embedding_model, classifier, optimizer, train_dataloader, val_dataloader
     )
 
@@ -79,13 +79,19 @@ def train_sharded_embedding_model(
                     )
 
                     training_metrics = {
-                        "training_loss": loss.item(),
-                        "training_accuracy": num_correct / num_predicted,
-                        "shard_idx": shard_idx,
+                        f"shard_{shard_idx}/training_loss": loss.item(),
+                        f"shard_{shard_idx}/training_accuracy": num_correct
+                        / num_predicted,
                     }
 
-                    progress_bar.set_postfix(training_metrics)
                     wandb_run.log(training_metrics)
+                    progress_bar.set_postfix(
+                        {
+                            "loss": loss.item(),
+                            "accuracy": num_correct / num_predicted,
+                            "shard_idx": shard_idx,
+                        }
+                    )
 
                     accelerator.backward(loss)
                     prepared_optimizer.step()
@@ -186,9 +192,8 @@ def validate_shard_training(
     )
 
     validation_metrics = {
-        "validation_loss": val_loss,
-        "validation_accuracy": val_accuracy,
-        "shard_idx": shard_idx,
+        f"shard_{shard_idx}/validation_loss": val_loss,
+        f"shard_{shard_idx}/validation_accuracy": val_accuracy,
     }
     wandb_run.log(validation_metrics)
 
