@@ -354,7 +354,7 @@ def naive_retraining(
     val_batch_interval: int,
 ):
     current_datetime = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-    experiment_group_name = f"naive_retraining-{current_datetime}-{num_shards}_shards-{epochs}_epochs-{embedding_dim}_embedding_dim-{hidden_dim}_hidden_dim-{learning_rate}_learning_rate-{weight_decay}_weight_decay"
+    experiment_group_name = f"naive-rt-{current_datetime}-{num_shards}_shards-{epochs}_epochs-{embedding_dim}_embed_dim-{hidden_dim}_hidden_dim-{learning_rate}_learning_rate-{weight_decay}_weight_decay"
 
     accelerator = Accelerator()
     model_storage = SISPAModelStorage(storage_path=storage_path)
