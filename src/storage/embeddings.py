@@ -178,7 +178,7 @@ class SISPAEmbeddingStorage:
         split_group_path = self._get_split_group_path(training_step)
         ids_path = self._get_ids_path_for_step(training_step)
         split_group = self.file.require_group(split_group_path)
-        if ids_path not in split_group:
+        if self.ids_dataset_name not in split_group:
             raise RuntimeError(
                 f"IDs not initialized for TrainingStep '{training_step.value}'."
             )
