@@ -135,7 +135,9 @@ class SISPAModelStorage:
             metadata=metadata,
         )
         artifact.add_file(save_path)
-        wandb_run = init_wandb_run(experiment_group_name=experiment_group_name)
+        wandb_run = init_wandb_run(
+            experiment_group_name=experiment_group_name, reinit=False
+        )
         wandb_run.log_artifact(artifact)
 
         return save_path
@@ -262,7 +264,9 @@ class SISPAModelStorage:
             metadata=metadata,
         )
         artifact.add_file(save_path)
-        wandb_run = init_wandb_run(experiment_group_name=experiment_group_name)
+        wandb_run = init_wandb_run(
+            experiment_group_name=experiment_group_name, reinit=False
+        )
         wandb_run.log_artifact(artifact)
 
         return save_path

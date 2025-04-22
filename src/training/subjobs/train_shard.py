@@ -55,6 +55,7 @@ def train_sharded_embedding_model(
     wandb_run = init_wandb_run(
         experiment_group_name=experiment_group_name,
         experiment_name=f"Shard {shard_idx} training",
+        reinit=True,
     )
     prepared_embedding_model.train()
     prepared_classifier.train()

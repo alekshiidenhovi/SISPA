@@ -51,6 +51,7 @@ def train_aggregation_classifier(
     wandb_run = init_wandb_run(
         experiment_group_name=experiment_group_name,
         experiment_name="Aggregator training",
+        reinit=True,
     )
     prepared_aggregator.train()
     for epoch_idx in range(epochs):
