@@ -12,7 +12,10 @@ def init_wandb_api_client():
     return api
 
 
-def init_wandb_run(experiment_name: T.Optional[str] = None):
+def init_wandb_run(
+    experiment_name: T.Optional[str] = None,
+    experiment_group_name: T.Optional[str] = None,
+):
     """
     Initialize and configure a Weights & Biases logger.
 
@@ -47,6 +50,7 @@ def init_wandb_run(experiment_name: T.Optional[str] = None):
         project=WANDB_PROJECT,
         entity=WANDB_ENTITY,
         name=experiment_name,
+        group=experiment_group_name,
     )
 
     return run
