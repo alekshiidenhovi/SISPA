@@ -10,11 +10,11 @@ from training.subjobs.utils import compute_prediction_statistics
 
 def train_sharded_embedding_model(
     accelerator: Accelerator,
-    embedding_model: nn.Module,
-    classifier: nn.Module,
-    optimizer: optim.Optimizer,
-    train_dataloader: DataLoader,
-    val_dataloader: DataLoader,
+    prepared_embedding_model: nn.Module,
+    prepared_classifier: nn.Module,
+    prepared_optimizer: optim.Optimizer,
+    prepared_train_dataloader: DataLoader,
+    prepared_val_dataloader: DataLoader,
     loss_fn: nn.Module,
     val_batch_interval: int,
     epochs: int,
@@ -27,15 +27,15 @@ def train_sharded_embedding_model(
     Args:
         accelerator : Accelerator
             Accelerator to use for training
-        embedding_model : nn.Module
+        prepared_embedding_model : nn.Module
             Prepared embedding model
-        classifier : nn.Module
+        prepared_classifier : nn.Module
             Prepared classifier
-        optimizer : optim.Optimizer
+        prepared_optimizer : optim.Optimizer
             Prepared optimizer
-        train_dataloader : DataLoader
+        prepared_train_dataloader : DataLoader
             Prepared train dataloader
-        val_dataloader : DataLoader
+        prepared_val_dataloader : DataLoader
             Validation dataloader
         loss_fn : nn.Module
             Loss function
@@ -50,20 +50,6 @@ def train_sharded_embedding_model(
         nn.Module
             Trained embedding model on the CPU
     """
-    (
-        prepared_embedding_model,
-        prepared_classifier,
-        prepared_optimizer,
-        prepared_train_dataloader,
-        prepared_val_dataloader,
-    ) = accelerator.prepare(
-        embedding_model,
-        classifier,
-        optimizer,
-        train_dataloader,
-        val_dataloader,
-    )
-
     prepared_embedding_model.train()
     prepared_classifier.train()
     for epoch_idx in range(epochs):
@@ -117,20 +103,6 @@ def train_sharded_embedding_model(
 
                 prepared_embedding_model.train()
                 prepared_classifier.train()
-
-    (
-        prepared_embedding_model,
-        prepared_classifier,
-        prepared_optimizer,
-        prepared_train_dataloader,
-        prepared_val_dataloader,
-    ) = accelerator.clear(
-        prepared_embedding_model,
-        prepared_classifier,
-        prepared_optimizer,
-        prepared_train_dataloader,
-        prepared_val_dataloader,
-    )
 
     return accelerator.unwrap_model(prepared_embedding_model).cpu()
 
