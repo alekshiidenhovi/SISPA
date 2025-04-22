@@ -10,8 +10,13 @@ from torchvision import datasets, transforms
 from prefect import flow, task
 from prefect.cache_policies import NO_CACHE
 from common.types import TrainingStep
-
-from datasets.class_informed import create_class_informed_dataset_splits
+from common.config import TrainingConfig
+from datasets.choose_dataset_split_strategy import (
+    choose_dataset_split_strategy,
+    DatasetSplitStrategy,
+    DATASET_SPLIT_STRATEGY_FUNCTION,
+    BaseDatasetSplitStrategyParams,
+)
 from models.resnet import ResNet
 from models.sispa import (
     SISPAShardedEmbeddings,
@@ -29,19 +34,12 @@ from storage.models import SISPAModelStorage
 
 @task(cache_policy=NO_CACHE)
 def dataset_splits_task(
-    dataset: Dataset,
+    dataset_split_strategy_function: DATASET_SPLIT_STRATEGY_FUNCTION,
+    dataset_split_strategy_params: BaseDatasetSplitStrategyParams,
     dataset_splits_storage: SISPADatasetSplitsStorage,
-    train_val_test_split: T.Tuple[float, float, float],
-    sampling_ratio: float,
-    seed: int,
 ):
-    train_shard_indices, val_indices, test_indices = (
-        create_class_informed_dataset_splits(
-            dataset=dataset,
-            train_val_test_split=train_val_test_split,
-            sampling_ratio=sampling_ratio,
-            seed=seed,
-        )
+    train_shard_indices, val_indices, test_indices = dataset_split_strategy_function(
+        dataset_split_strategy_params
     )
     dataset_splits_storage.store_all_splits(
         train_shard_indices=train_shard_indices,
@@ -319,51 +317,59 @@ def train_aggregator_task(
 
 
 @click.command()
-@click.option("--epochs", type=int, default=8)
-@click.option("--num-shards", type=int, default=10)
+@click.option("--train-batch-size", type=int, default=None)
+@click.option("--val-batch-size", type=int, default=None)
+@click.option("--test-batch-size", type=int, default=None)
+@click.option("--num-workers", type=int, default=None)
 @click.option(
     "--train-val-test-split",
     type=click.Tuple([float, float, float]),
-    default=(0.8, 0.1, 0.1),
+    default=None,
 )
-@click.option("--sampling-ratio", type=float, default=0.5)
-@click.option("--seed", type=int, default=42)
-@click.option("--train-batch-size", type=int, default=64)
-@click.option("--val-batch-size", type=int, default=64)
-@click.option("--test-batch-size", type=int, default=64)
-@click.option("--embedding-dim", type=int, default=64)
-@click.option("--hidden-dim", type=int, default=64)
-@click.option("--num-blocks", type=int, default=3)
-@click.option("--learning-rate", type=float, default=1e-4)
-@click.option("--weight-decay", type=float, default=1e-4)
-@click.option("--storage-path", type=str)
-@click.option("--val-batch-interval", type=int, default=50)
+@click.option("--num-shards", type=int, default=None)
+@click.option("--class-informed-strategy-sampling-ratio", type=float, default=None)
+@click.option("--backbone-embedding-dim", type=int, default=None)
+@click.option("--resnet-num-blocks", type=int, default=None)
+@click.option("--aggregator-hidden-dim", type=int, default=None)
+@click.option("--accelerator", type=str, default=None)
+@click.option("--val-check-interval-percentage", type=float, default=None)
+@click.option("--epochs", type=int, default=None)
+@click.option("--devices", type=T.List[int], default=None)
+@click.option("--accumulate-grad-batches", type=int, default=None)
+@click.option("--optimizer-weight-decay", type=float, default=None)
+@click.option("--optimizer-adam-beta1", type=float, default=None)
+@click.option("--optimizer-adam-beta2", type=float, default=None)
+@click.option("--optimizer-learning-rate", type=float, default=None)
+@click.option("--seed", type=int, default=None)
+@click.option("--storage-path", type=str, default=None)
+@click.option(
+    "--dataset-split-strategy",
+    type=str,
+    default=None,
+)
 @flow
-def naive_retraining(
-    epochs: int,
-    num_shards: int,
-    train_val_test_split: T.Tuple[float, float, float],
-    sampling_ratio: float,
-    seed: int,
-    train_batch_size: int,
-    val_batch_size: int,
-    test_batch_size: int,
-    embedding_dim: int,
-    hidden_dim: int,
-    num_blocks: int,
-    learning_rate: float,
-    weight_decay: float,
-    storage_path: str,
-    val_batch_interval: int,
-):
+def naive_retraining(**kwargs):
+    valid_fields = set(TrainingConfig.model_fields.keys())
+    config_kwargs = {
+        k: v for k, v in kwargs.items() if v is not None and k in valid_fields
+    }
+    training_config = TrainingConfig(**config_kwargs)
+    model_config = training_config.get_model_config()
+    dataset_config = training_config.get_dataset_config()
+    optimizer_config = training_config.get_optimizer_config()
+    finetuning_config = training_config.get_finetuning_config()
+
     current_datetime = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-    experiment_group_name = f"naive-rt-{current_datetime}-{num_shards}_shards-{epochs}_epochs-{embedding_dim}_embed_dim-{hidden_dim}_hidden_dim-{learning_rate}_learning_rate-{weight_decay}_weight_decay"
+    experiment_group_name = f"naive-rt-{current_datetime}-{dataset_config.num_shards}_shards-{finetuning_config.epochs}_epochs-{model_config.backbone_embedding_dim}_embed_dim-{model_config.resnet_num_blocks}_num_blocks-{model_config.aggregator_hidden_dim}_hidden_dim-{optimizer_config.optimizer_learning_rate}_lr-{optimizer_config.optimizer_weight_decay}_wd"
 
     accelerator = Accelerator()
-    model_storage = SISPAModelStorage(storage_path=storage_path)
-    dataset_splits_storage = SISPADatasetSplitsStorage(storage_path=storage_path)
+    model_storage = SISPAModelStorage(storage_path=training_config.storage_path)
+    dataset_splits_storage = SISPADatasetSplitsStorage(
+        storage_path=training_config.storage_path
+    )
     embedding_storage = SISPAEmbeddingStorage(
-        storage_path=storage_path, embedding_dim=embedding_dim
+        storage_path=training_config.storage_path,
+        embedding_dim=model_config.backbone_embedding_dim,
     )
 
     transform = transforms.Compose(
@@ -377,50 +383,72 @@ def naive_retraining(
     )
     num_classes = len(raw_dataset.targets.unique())
 
-    embedding_model = ResNet(num_blocks=num_blocks, embedding_dim=embedding_dim)
-    classifier = torch.nn.Linear(embedding_dim, num_classes)
+    backbone_embedding_model = ResNet(
+        num_blocks=model_config.resnet_num_blocks,
+        embedding_dim=model_config.backbone_embedding_dim,
+    )
+    backbone_classifier = torch.nn.Linear(
+        model_config.backbone_embedding_dim, num_classes
+    )
     untrained_embedding_models = [
-        copy.deepcopy(embedding_model) for _ in range(num_shards)
+        copy.deepcopy(backbone_embedding_model)
+        for _ in range(dataset_config.num_shards)
     ]
-    classifiers = [copy.deepcopy(classifier) for _ in range(num_shards)]
+    classifiers = [
+        copy.deepcopy(backbone_classifier) for _ in range(dataset_config.num_shards)
+    ]
     loss_fn = torch.nn.CrossEntropyLoss()
     shard_optimizers = [
         torch.optim.AdamW(
             list(embedding_model.parameters()) + list(classifier.parameters()),
-            lr=learning_rate,
-            weight_decay=weight_decay,
+            lr=optimizer_config.optimizer_learning_rate,
+            weight_decay=optimizer_config.optimizer_weight_decay,
         )
         for embedding_model, classifier in zip(untrained_embedding_models, classifiers)
     ]
 
     aggregator = SISPAEmbeddingAggregator(
-        embedding_dim=embedding_dim,
-        hidden_dim=hidden_dim,
-        num_shards=num_shards,
+        embedding_dim=model_config.backbone_embedding_dim,
+        hidden_dim=model_config.aggregator_hidden_dim,
+        num_shards=dataset_config.num_shards,
         num_classes=num_classes,
     )
     aggregator_optimizer = torch.optim.AdamW(
         list(aggregator.parameters()),
-        lr=learning_rate,
-        weight_decay=weight_decay,
+        lr=optimizer_config.optimizer_learning_rate,
+        weight_decay=optimizer_config.optimizer_weight_decay,
+    )
+
+    try:
+        dataset_split_strategy_enum = DatasetSplitStrategy(
+            dataset_config.dataset_split_strategy
+        )
+    except ValueError:
+        raise ValueError(
+            f"Invalid dataset split strategy: {dataset_config.dataset_split_strategy}"
+        )
+
+    dataset_split_strategy_function, dataset_split_strategy_params = (
+        choose_dataset_split_strategy(
+            dataset_split_strategy_enum,
+            {**training_config.model_dump(), "dataset": raw_dataset},
+        )
     )
 
     dataset_splits_task(
-        dataset=raw_dataset,
+        dataset_split_strategy_function=dataset_split_strategy_function,
+        dataset_split_strategy_params=dataset_split_strategy_params,
         dataset_splits_storage=dataset_splits_storage,
-        train_val_test_split=train_val_test_split,
-        sampling_ratio=sampling_ratio,
-        seed=seed,
     )
 
     full_train_dataloader, train_shard_dataloaders, val_dataloader, test_dataloader = (
         load_shard_dataloaders_task(
             dataset=raw_dataset,
             dataset_splits_storage=dataset_splits_storage,
-            train_batch_size=train_batch_size,
-            val_batch_size=val_batch_size,
-            test_batch_size=test_batch_size,
-            num_shards=num_shards,
+            train_batch_size=training_config.train_batch_size,
+            val_batch_size=training_config.val_batch_size,
+            test_batch_size=training_config.test_batch_size,
+            num_shards=dataset_config.num_shards,
         )
     )
 
@@ -429,30 +457,30 @@ def naive_retraining(
         model_storage=model_storage,
         train_shard_dataloaders=train_shard_dataloaders,
         val_dataloader=val_dataloader,
-        val_batch_interval=val_batch_interval,
+        val_batch_interval=finetuning_config.val_batch_interval,
         shard_optimizers=shard_optimizers,
         untrained_embedding_models=untrained_embedding_models,
         classifiers=classifiers,
         loss_fn=loss_fn,
-        epochs=epochs,
+        epochs=finetuning_config.epochs,
         experiment_group_name=experiment_group_name,
     )
 
     precompute_embeddings_task(
         accelerator=accelerator,
-        embedding_model=embedding_model,
+        embedding_model=backbone_embedding_model,
         model_storage=model_storage,
         embedding_storage=embedding_storage,
         full_train_dataloader=full_train_dataloader,
         val_dataloader=val_dataloader,
-        num_shards=num_shards,
+        num_shards=dataset_config.num_shards,
     )
 
     training_embeddings_dataloader, validation_embeddings_dataloader = (
         load_aggregation_dataloaders_task(
             embedding_storage=embedding_storage,
-            train_batch_size=train_batch_size,
-            val_batch_size=val_batch_size,
+            train_batch_size=training_config.train_batch_size,
+            val_batch_size=training_config.val_batch_size,
         )
     )
 
@@ -463,8 +491,8 @@ def naive_retraining(
         training_embeddings_dataloader=training_embeddings_dataloader,
         validation_embeddings_dataloader=validation_embeddings_dataloader,
         loss_fn=loss_fn,
-        val_batch_interval=val_batch_interval,
-        epochs=epochs,
+        val_batch_interval=finetuning_config.val_batch_interval,
+        epochs=finetuning_config.epochs,
         model_storage=model_storage,
         experiment_group_name=experiment_group_name,
     )
