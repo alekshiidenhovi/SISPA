@@ -296,6 +296,7 @@ def train_aggregator_task(
         loss_fn=loss_fn,
         val_batch_interval=val_batch_interval,
         epochs=epochs,
+        wandb_run=wandb_run,
     )
 
     model_storage.save_aggregator_model(
