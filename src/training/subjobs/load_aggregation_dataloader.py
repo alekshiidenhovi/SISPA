@@ -39,7 +39,6 @@ def load_aggregation_dataloader(
             all_embeddings = torch.cat(
                 (all_embeddings, torch.tensor(embeddings)), dim=1
             )
-            all_labels = torch.cat((all_labels, torch.tensor(labels)), dim=1)
 
     embeddings_dataset = TensorDataset(all_embeddings, all_labels)
     embeddings_dataloader = DataLoader(
