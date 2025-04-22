@@ -53,12 +53,12 @@ def train_sharded_embedding_model(
     prepared_embedding_model.train()
     prepared_classifier.train()
     for epoch_idx in range(epochs):
-        progress_bar = tqdm(prepared_train_dataloader)
-        for batch_idx, (images, labels) in enumerate(progress_bar):
-            with accelerator.accumulate(prepared_embedding_model):
+        training_progress_bar = tqdm(prepared_train_dataloader)
+        for training_batch_idx, (images, labels) in enumerate(training_progress_bar):
+            with accelerator.accumulate(prepared_embedding_model, prepared_classifier):
                 with accelerator.autocast():
-                    progress_bar.set_description(
-                        f"Training shard {shard_idx}, epoch {epoch_idx + 1}/{epochs}, batch {batch_idx + 1}/{len(prepared_train_dataloader)}"
+                    training_progress_bar.set_description(
+                        f"Training shard {shard_idx}, epoch {epoch_idx + 1}/{epochs}, training batch {training_batch_idx + 1}/{len(prepared_train_dataloader)}"
                     )
                     embeddings = prepared_embedding_model(images)
                     outputs = prepared_classifier(embeddings)
@@ -75,10 +75,10 @@ def train_sharded_embedding_model(
                     }
 
                     wandb_run.log(training_metrics)
-                    progress_bar.set_postfix(
+                    training_progress_bar.set_postfix(
                         {
-                            "loss": loss.item(),
-                            "accuracy": num_correct / num_predicted,
+                            "training_loss": loss.item(),
+                            "training_accuracy": num_correct / num_predicted,
                             "shard_idx": shard_idx,
                         }
                     )
@@ -87,7 +87,7 @@ def train_sharded_embedding_model(
                     prepared_optimizer.step()
                     prepared_optimizer.zero_grad()
 
-            if (batch_idx + 1) % val_batch_interval == 0:
+            if (training_batch_idx + 1) % val_batch_interval == 0:
                 validate_shard_training(
                     accelerator=accelerator,
                     prepared_embedding_model=prepared_embedding_model,
@@ -96,7 +96,7 @@ def train_sharded_embedding_model(
                     loss_fn=loss_fn,
                     epoch_idx=epoch_idx,
                     shard_idx=shard_idx,
-                    batch_idx=batch_idx,
+                    training_batch_idx=training_batch_idx,
                     epochs=epochs,
                     wandb_run=wandb_run,
                 )
@@ -116,7 +116,7 @@ def validate_shard_training(
     loss_fn: nn.Module,
     epoch_idx: int,
     shard_idx: int,
-    batch_idx: int,
+    training_batch_idx: int,
     epochs: int,
     wandb_run: wandb.wandb_run.Run,
 ):
@@ -139,8 +139,8 @@ def validate_shard_training(
         Index of the epoch
     shard_idx : int
         Index of the shard
-    batch_idx : int
-        Index of the batch
+    training_batch_idx : int
+        Index of the training batch
     epochs : int
         Total number of epochs
     wandb_run : wandb.wandb_run.Run
@@ -158,10 +158,10 @@ def validate_shard_training(
     total_validation_predicted: int = 0
 
     validation_progress_bar = tqdm(prepared_val_dataloader)
-    for images, labels in validation_progress_bar:
+    for validation_batch_idx, (images, labels) in enumerate(validation_progress_bar):
         with accelerator.autocast():
             validation_progress_bar.set_description(
-                f"Validating shard {shard_idx}, epoch {epoch_idx + 1}/{epochs}, batch {batch_idx + 1}/{len(prepared_val_dataloader)}"
+                f"Validating shard {shard_idx}, during straining epoch {epoch_idx + 1}/{epochs}, training batch {training_batch_idx + 1}, validation batch {validation_batch_idx + 1}/{len(prepared_val_dataloader)}"
             )
             embeddings = prepared_embedding_model(images)
             outputs = prepared_classifier(embeddings)
@@ -173,6 +173,14 @@ def validate_shard_training(
             total_validation_loss += loss.item()
             total_validation_predicted += num_predicted
             total_validation_correct += num_correct
+
+            validation_progress_bar.set_postfix(
+                {
+                    "validation_loss": loss.item(),
+                    "validation_accuracy": num_correct / num_predicted,
+                    "shard_idx": shard_idx,
+                }
+            )
 
     val_loss = total_validation_loss / len(prepared_val_dataloader)
     val_accuracy = (
