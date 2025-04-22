@@ -26,8 +26,6 @@ def load_aggregation_dataloader(
         embeddings, labels, _ = embedding_storage.retrieve_shard_embeddings(
             training_step=training_step, shard_idx=shard_idx
         )
-        print("embeddings.shape", embeddings.shape)
-        print("labels.shape", labels.shape)
         if embeddings is None:
             logger.warning(f"No embeddings found for shard {shard_idx}")
             continue
