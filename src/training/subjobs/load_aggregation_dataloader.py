@@ -7,14 +7,17 @@ from common.types import TrainingStep
 
 def load_aggregation_dataloader(
     embedding_storage: SISPAEmbeddingStorage,
-    num_shards: int,
     batch_size: int,
     training_step: TrainingStep,
 ) -> DataLoader:
     all_embeddings = torch.tensor([], dtype=torch.float32)
     all_labels = torch.tensor([], dtype=torch.int64)
 
-    for shard_idx in range(num_shards):
+    shards = embedding_storage.get_shards_for_step(training_step)
+    if shards is None:
+        raise ValueError(f"No shards found for training step {training_step}")
+
+    for shard_idx in shards:
         embeddings, labels, _ = embedding_storage.retrieve_shard_embeddings(
             training_step=training_step, shard_idx=shard_idx
         )
@@ -22,8 +25,8 @@ def load_aggregation_dataloader(
             logger.warning(f"No embeddings found for shard {shard_idx}")
             continue
 
-        all_embeddings = torch.cat((all_embeddings, torch.tensor(embeddings)), dim=0)
-        all_labels = torch.cat((all_labels, torch.tensor(labels)), dim=0)
+        all_embeddings = torch.cat((all_embeddings, torch.tensor(embeddings)), dim=1)
+        all_labels = torch.cat((all_labels, torch.tensor(labels)), dim=1)
 
     embeddings_dataset = TensorDataset(all_embeddings, all_labels)
     embeddings_dataloader = DataLoader(

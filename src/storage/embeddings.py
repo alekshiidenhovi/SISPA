@@ -138,7 +138,7 @@ class SISPAEmbeddingStorage:
                     )
         return steps
 
-    def _get_shards_for_step(
+    def get_shards_for_step(
         self, training_step: TrainingStep
     ) -> T.Optional[T.List[int]]:
         """List all shard indices available for a given training step."""
