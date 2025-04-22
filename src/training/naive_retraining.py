@@ -10,6 +10,8 @@ from torchvision import datasets, transforms
 from prefect import flow, task
 from prefect.cache_policies import NO_CACHE
 from common.types import TrainingStep
+
+from datasets.class_informed import create_class_informed_dataset_splits
 from models.resnet import ResNet
 from models.sispa import (
     SISPAShardedEmbeddings,
@@ -18,7 +20,6 @@ from models.sispa import (
 from training.subjobs.precompute_embeddings import precompute_embeddings
 from training.subjobs.train_aggregation import train_aggregation_classifier
 from training.subjobs.train_shard import train_sharded_embedding_model
-from training.subjobs.create_dataset_splits import create_dataset_splits
 from training.subjobs.load_aggregation_dataloader import load_aggregation_dataloader
 from training.subjobs.collect_labels import collect_labels
 from storage.dataset_splits import SISPADatasetSplitsStorage
@@ -34,11 +35,13 @@ def dataset_splits_task(
     sampling_ratio: float,
     seed: int,
 ):
-    train_shard_indices, val_indices, test_indices = create_dataset_splits(
-        dataset=dataset,
-        train_val_test_split=train_val_test_split,
-        sampling_ratio=sampling_ratio,
-        seed=seed,
+    train_shard_indices, val_indices, test_indices = (
+        create_class_informed_dataset_splits(
+            dataset=dataset,
+            train_val_test_split=train_val_test_split,
+            sampling_ratio=sampling_ratio,
+            seed=seed,
+        )
     )
     dataset_splits_storage.store_all_splits(
         train_shard_indices=train_shard_indices,

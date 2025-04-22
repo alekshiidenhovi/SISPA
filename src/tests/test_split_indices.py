@@ -3,7 +3,9 @@ from pathlib import Path
 
 sys.path.append(str(Path(__file__).parent.parent))
 
-from datasets.mnist.shard_splits import calculate_split_indices
+from datasets.class_informed.class_informed_dataset_splits import (
+    calculate_class_informed_shard_split_indices,
+)
 
 
 def test_basic_functionality():
@@ -12,7 +14,7 @@ def test_basic_functionality():
     num_samples = 100
     sampling_ratio = 0.5
 
-    splits = calculate_split_indices(
+    splits = calculate_class_informed_shard_split_indices(
         class_labels, class_label, num_samples, sampling_ratio
     )
 
@@ -27,7 +29,7 @@ def test_binary_case():
     num_samples = 100
     sampling_ratio = 0.7
 
-    splits = calculate_split_indices(
+    splits = calculate_class_informed_shard_split_indices(
         class_labels, class_label, num_samples, sampling_ratio
     )
 
