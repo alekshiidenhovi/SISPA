@@ -1,22 +1,23 @@
 import torch
 import torch.nn as nn
+import wandb
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 from accelerate import Accelerator
-from common.logger import logger
 from models.sispa.sispa_embedding_aggregator import SISPAEmbeddingAggregator
 from training.subjobs.utils import compute_prediction_statistics
 
 
 def train_aggregation_classifier(
     accelerator: Accelerator,
-    aggregator: SISPAEmbeddingAggregator,
-    optimizer: torch.optim.Optimizer,
-    training_embeddings_dataloader: DataLoader,
-    validation_embeddings_dataloader: DataLoader,
+    prepared_aggregator: SISPAEmbeddingAggregator,
+    prepared_optimizer: torch.optim.Optimizer,
+    prepared_training_embeddings_dataloader: DataLoader,
+    prepared_validation_embeddings_dataloader: DataLoader,
     loss_fn: nn.Module,
     val_batch_interval: int,
     epochs: int,
+    wandb_run: wandb.wandb_run.Run,
 ):
     """
     Train an aggregation classifier on precomputed embeddings from multiple shards.
@@ -24,62 +25,51 @@ def train_aggregation_classifier(
     Args:
         accelerator : Accelerator
             Accelerator to use for training
-        aggregator : SISPAEmbeddingAggregator
-            Embedding aggregator
-        optimizer : torch.optim.Optimizer
+        prepared_aggregator : SISPAEmbeddingAggregator
+            Prepared embedding aggregator
+        prepared_optimizer : torch.optim.Optimizer
             Optimizer for the embedding aggregator
-        training_embeddings_dataloader : DataLoader
-            Dataloader for the full training dataset of precomputed embeddings
-        validation_embeddings_dataloader : DataLoader
-            Dataloader for the validation dataset of precomputed embeddings
+        prepared_training_embeddings_dataloader : DataLoader
+            Prepared dataloader for the full training dataset of precomputed embeddings
+        prepared_validation_embeddings_dataloader : DataLoader
+            Prepared dataloader for the validation dataset of precomputed embeddings
         loss_fn : nn.Module
             Loss function
         val_batch_interval : int
             Interval for validation, the model is validated every `val_batch_interval` batches
         epochs : int
             Number of epochs to train for
+        wandb_run : wandb.wandb_run.Run
+            W&B run to use for logging
 
     Returns:
         nn.Module
             Trained embedding aggregator on the CPU
     """
-
-    (
-        prepared_aggregator,
-        prepared_optimizer,
-        prepared_training_embeddings_dataloader,
-        prepared_validation_embeddings_dataloader,
-    ) = accelerator.prepare(
-        aggregator,
-        optimizer,
-        training_embeddings_dataloader,
-        validation_embeddings_dataloader,
-    )
-
     prepared_aggregator.train()
     for epoch_idx in range(epochs):
-        total_training_loss = 0.0
-        total_training_correct = 0
-        total_training_predicted = 0
-
-        training_progress_bar = tqdm(
-            prepared_training_embeddings_dataloader,
-            desc=f"Training aggregation classifier, epoch {epoch_idx + 1}/{epochs}",
-        )
-
-        for batch_idx, (embeddings, labels) in enumerate(training_progress_bar):
+        training_progress_bar = tqdm(prepared_training_embeddings_dataloader)
+        for training_batch_idx, (embeddings, labels) in enumerate(
+            training_progress_bar
+        ):
             with accelerator.accumulate(prepared_aggregator):
                 with accelerator.autocast():
+                    training_progress_bar.set_description(
+                        f"Training aggregation classifier, epoch {epoch_idx + 1}/{epochs}, training batch {training_batch_idx + 1}/{len(prepared_training_embeddings_dataloader)}"
+                    )
                     outputs = prepared_aggregator(embeddings)
                     loss, num_predicted, num_correct = compute_prediction_statistics(
                         loss_fn,
                         outputs,
                         labels,
                     )
-                    total_training_loss += loss.item()
-                    total_training_predicted += num_predicted
-                    total_training_correct += num_correct
 
+                    training_metrics = {
+                        "aggregation/training_loss": loss.item(),
+                        "aggregation/training_accuracy": num_correct / num_predicted,
+                    }
+
+                    wandb_run.log(training_metrics)
                     training_progress_bar.set_postfix(
                         {
                             "training_loss": loss.item(),
@@ -91,28 +81,18 @@ def train_aggregation_classifier(
                     prepared_optimizer.step()
                     prepared_optimizer.zero_grad()
 
-            if (batch_idx + 1) % val_batch_interval == 0:
-                val_loss, val_accuracy = validate_aggregation_training(
+            if (training_batch_idx + 1) % val_batch_interval == 0:
+                validate_aggregation_training(
                     accelerator=accelerator,
                     prepared_aggregator=prepared_aggregator,
                     prepared_validation_embeddings_dataloader=prepared_validation_embeddings_dataloader,
                     loss_fn=loss_fn,
                     epoch_idx=epoch_idx,
-                    batch_idx=batch_idx,
+                    training_batch_idx=training_batch_idx,
                     epochs=epochs,
-                )
-                logger.info(
-                    f"Aggregation, epoch {epoch_idx + 1}, batch {batch_idx + 1}: "
-                    f"Val Loss: {val_loss:.4f}, Val Accuracy: {val_accuracy:.2f}%"
+                    wandb_run=wandb_run,
                 )
                 prepared_aggregator.train()
-
-        final_accuracy = 100 * total_training_correct / total_training_predicted
-        logger.info(
-            f"Aggregation, epoch {epoch_idx + 1}: "
-            f"Loss: {total_training_loss / len(prepared_training_embeddings_dataloader):.4f}, "
-            f"Accuracy: {final_accuracy:.2f}%"
-        )
 
     return accelerator.unwrap_model(prepared_aggregator).cpu()
 
@@ -124,8 +104,9 @@ def validate_aggregation_training(
     prepared_validation_embeddings_dataloader: DataLoader,
     loss_fn: nn.Module,
     epoch_idx: int,
-    batch_idx: int,
+    training_batch_idx: int,
     epochs: int,
+    wandb_run: wandb.wandb_run.Run,
 ):
     """
     Validate the aggregation classifier using embeddings from validation data.
@@ -142,10 +123,12 @@ def validate_aggregation_training(
         Loss function
     epoch_idx : int
         Current epoch index
-    batch_idx : int
-        Current batch index
+    training_batch_idx : int
+        Current training batch index
     epochs : int
         Total number of epochs
+    wandb_run : wandb.wandb_run.Run
+        Wandb run to use for logging
 
     Returns
     -------
@@ -157,13 +140,14 @@ def validate_aggregation_training(
     total_validation_correct = 0
     total_validation_predicted = 0
 
-    validation_progress_bar = tqdm(
-        prepared_validation_embeddings_dataloader,
-        desc=f"Validating aggregation, epoch {epoch_idx + 1}/{epochs}, batch {batch_idx + 1}",
-    )
-
-    for embeddings, labels in validation_progress_bar:
+    validation_progress_bar = tqdm(prepared_validation_embeddings_dataloader)
+    for validation_batch_idx, (embeddings, labels) in enumerate(
+        validation_progress_bar
+    ):
         with accelerator.autocast():
+            validation_progress_bar.set_description(
+                f"Validating aggregation, epoch {epoch_idx + 1}/{epochs}, during training batch {training_batch_idx + 1}, validation batch {validation_batch_idx + 1}/{len(prepared_validation_embeddings_dataloader)}"
+            )
             outputs = prepared_aggregator(embeddings)
             loss, num_predicted, num_correct = compute_prediction_statistics(
                 loss_fn,
@@ -175,12 +159,25 @@ def validate_aggregation_training(
             total_validation_predicted += num_predicted
             total_validation_correct += num_correct
 
+            validation_progress_bar.set_postfix(
+                {
+                    "validation_loss": loss.item(),
+                    "validation_accuracy": num_correct / num_predicted,
+                }
+            )
+
     val_loss = total_validation_loss / len(prepared_validation_embeddings_dataloader)
     val_accuracy = (
         100 * total_validation_correct / total_validation_predicted
         if total_validation_predicted > 0
         else 0.0
     )
+
+    validation_metrics = {
+        "aggregation/validation_loss": val_loss,
+        "aggregation/validation_accuracy": val_accuracy,
+    }
+    wandb_run.log(validation_metrics)
 
     prepared_aggregator.train()
 
