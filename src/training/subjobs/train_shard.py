@@ -28,13 +28,13 @@ def train_sharded_embedding_model(
         accelerator : Accelerator
             Accelerator to use for training
         embedding_model : nn.Module
-            Untrained embedding model
+            Prepared embedding model
         classifier : nn.Module
-            Untrained classifier
+            Prepared classifier
         optimizer : optim.Optimizer
-            Optimizer
+            Prepared optimizer
         train_dataloader : DataLoader
-            Train dataloader
+            Prepared train dataloader
         val_dataloader : DataLoader
             Validation dataloader
         loss_fn : nn.Module
@@ -56,8 +56,12 @@ def train_sharded_embedding_model(
         prepared_optimizer,
         prepared_train_dataloader,
         prepared_val_dataloader,
-    ) = accelerator.clear(
-        embedding_model, classifier, optimizer, train_dataloader, val_dataloader
+    ) = accelerator.prepare(
+        embedding_model,
+        classifier,
+        optimizer,
+        train_dataloader,
+        val_dataloader,
     )
 
     prepared_embedding_model.train()
@@ -113,6 +117,20 @@ def train_sharded_embedding_model(
 
                 prepared_embedding_model.train()
                 prepared_classifier.train()
+
+    (
+        prepared_embedding_model,
+        prepared_classifier,
+        prepared_optimizer,
+        prepared_train_dataloader,
+        prepared_val_dataloader,
+    ) = accelerator.clear(
+        prepared_embedding_model,
+        prepared_classifier,
+        prepared_optimizer,
+        prepared_train_dataloader,
+        prepared_val_dataloader,
+    )
 
     return accelerator.unwrap_model(prepared_embedding_model).cpu()
 
