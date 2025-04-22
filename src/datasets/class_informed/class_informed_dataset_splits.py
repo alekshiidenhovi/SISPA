@@ -48,17 +48,13 @@ def create_class_informed_dataset_splits(
 
     class_labels = set(labels)
 
-    train_shard_indices_dict = create_class_informed_shard_splits(
+    train_shard_indices = create_class_informed_shard_splits(
         dataset=dataset,
         train_indices=train_indices,
         class_labels=class_labels,
         sampling_ratio=sampling_ratio,
         seed=seed,
     )
-
-    train_shard_indices = [
-        train_shard_indices_dict[i] for i in range(len(train_shard_indices_dict))
-    ]
 
     return train_shard_indices, val_indices, test_indices
 
@@ -69,7 +65,7 @@ def create_class_informed_shard_splits(
     class_labels: T.Set[int],
     sampling_ratio: float,
     seed: int,
-) -> T.Dict[int, T.List[int]]:
+) -> T.List[T.List[int]]:
     """
     Creates balanced shards of a dataset where each shard focuses on a specific class.
 
@@ -86,22 +82,23 @@ def create_class_informed_shard_splits(
         seed: Random seed for reproducibility
 
     Returns:
-        Dictionary mapping shard index to list of sample indices for that shard
+        List of lists, where each inner list contains indices for a class-focused shard
     """
     np.random.seed(seed)
 
-    indices_by_class = defaultdict(list)
-    shard_indices_dict = defaultdict(list)
+    original_indices_by_class = defaultdict(list)
     subset_dataset = Subset(dataset, train_indices)
+    shards = [[] for _ in range(len(class_labels))]
 
     for subset_idx, (_, label) in enumerate(subset_dataset):
         original_idx = train_indices[subset_idx]
-        indices_by_class[label].append(original_idx)
+        original_indices_by_class[label].append(original_idx)
 
-    for label in class_labels:
-        class_indices = np.array(indices_by_class[label])
-        np.random.shuffle(class_indices)
-        num_samples = len(class_indices)
+    for label, original_class_indices in original_indices_by_class.items():
+        original_indices = np.array(original_class_indices)
+        np.random.shuffle(original_indices)
+
+        num_samples = len(original_indices)
         splits = calculate_class_informed_shard_split_indices(
             class_labels=class_labels,
             class_label=label,
@@ -110,9 +107,9 @@ def create_class_informed_shard_splits(
         )
 
         for i in range(len(class_labels)):
-            shard_indices_dict[i].extend(class_indices[splits[i] : splits[i + 1]])
+            shards[i].extend(original_indices[splits[i] : splits[i + 1]])
 
-    return shard_indices_dict
+    return shards
 
 
 def calculate_class_informed_shard_split_indices(
