@@ -357,13 +357,30 @@ def test_sispa_framework_task(
         sispa_sharded_models,
         sispa_aggregator_model,
     )
+
+    (
+        prepared_sispa_framework,
+        prepared_test_dataloader,
+    ) = accelerator.prepare(
+        sispa_framework,
+        test_dataloader,
+    )
+
     test_sispa_framework(
         accelerator=accelerator,
-        sispa_framework=sispa_framework,
-        test_dataloader=test_dataloader,
+        prepared_sispa_framework=prepared_sispa_framework,
+        prepared_test_dataloader=prepared_test_dataloader,
         epochs=epochs,
         experiment_group_name=experiment_group_name,
         dataset_name=dataset_name,
+    )
+
+    (
+        prepared_sispa_framework,
+        prepared_test_dataloader,
+    ) = accelerator.clear(
+        prepared_sispa_framework,
+        prepared_test_dataloader,
     )
 
 

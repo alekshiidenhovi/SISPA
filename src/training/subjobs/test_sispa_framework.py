@@ -8,8 +8,8 @@ from training.utils import compute_prediction_statistics
 
 def test_sispa_framework(
     accelerator: ACCELERATOR,
-    sispa_framework: SISPAFramework,
-    test_dataloader: DataLoader,
+    prepared_sispa_framework: SISPAFramework,
+    prepared_test_dataloader: DataLoader,
     epochs: int,
     experiment_group_name: str,
     dataset_name: AVAILABLE_DATASETS,
@@ -20,9 +20,9 @@ def test_sispa_framework(
     Args:
         accelerator : Accelerator
             Accelerator to use for testing
-        sispa_framework : SISPAFramework
-            SISPA framework to use for testing
-        test_dataloader : DataLoader
+        prepared_sispa_framework : SISPAFramework
+            Prepared SISPA framework
+        prepared_test_dataloader : DataLoader
             Test dataloader
         epochs : int
             Number of epochs to train for
@@ -37,17 +37,17 @@ def test_sispa_framework(
         experiment_name="E2E testing",
         reinit=True,
     )
-    sispa_framework.eval()
+    prepared_sispa_framework.eval()
     total_test_predicted = 0
     total_test_correct = 0
     for epoch_idx in range(epochs):
-        test_progress_bar = tqdm(test_dataloader)
+        test_progress_bar = tqdm(prepared_test_dataloader)
         for test_batch_idx, (images, labels) in enumerate(test_progress_bar):
             with accelerator.autocast():
                 test_progress_bar.set_description(
-                    f"Testing SISPA framework, epoch {epoch_idx + 1}/{epochs}, testing batch {test_batch_idx + 1}/{len(test_dataloader)}"
+                    f"Testing SISPA framework, epoch {epoch_idx + 1}/{epochs}, testing batch {test_batch_idx + 1}/{len(prepared_test_dataloader)}"
                 )
-                outputs = sispa_framework(images)
+                outputs = prepared_sispa_framework(images)
                 num_predicted, num_correct = compute_prediction_statistics(
                     outputs,
                     labels,
