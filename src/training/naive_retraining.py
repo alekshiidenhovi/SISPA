@@ -367,6 +367,7 @@ def naive_retraining(**kwargs):
 
     wandb_run = init_wandb_run(
         experiment_group_name=experiment_group_name,
+        experiment_name="Experiment config",
         reinit=False,
     )
     wandb_run.config.update(training_config.model_dump())
