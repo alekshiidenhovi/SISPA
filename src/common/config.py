@@ -95,7 +95,7 @@ class FinetuningConfig(BaseModel):
         description="Compute accelerator to use for training",
     )
     val_check_interval_percentage: float = Field(
-        default=0.5,
+        default=1.0,
         ge=0.0,
         le=1.0,
         description="The percentage of training batches of an epoch after which to run validation",
