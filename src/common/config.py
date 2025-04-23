@@ -1,8 +1,8 @@
 from pydantic import BaseModel, Field, field_validator
 import typing as T
 import multiprocessing
+from common.types import DatasetSplitStrategy
 from common.tracking import init_wandb_api_client
-from datasets.choose_dataset_split_strategy import DatasetSplitStrategy
 
 ACCELERATOR = T.Literal["gpu", "cpu", "tpu"]
 

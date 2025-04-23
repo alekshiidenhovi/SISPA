@@ -9,12 +9,14 @@ from torch.utils.data import DataLoader, Subset, Dataset
 from torchvision import datasets, transforms
 from prefect import flow, task
 from prefect.cache_policies import NO_CACHE
-from common.types import TrainingStep
+from common.types import (
+    TrainingStep,
+    DATASET_SPLIT_STRATEGY_FUNCTION,
+    DatasetSplitStrategy,
+)
 from common.config import TrainingConfig
 from datasets.choose_dataset_split_strategy import (
     choose_dataset_split_strategy,
-    DatasetSplitStrategy,
-    DATASET_SPLIT_STRATEGY_FUNCTION,
     BaseDatasetSplitStrategyParams,
 )
 from models.resnet import ResNet

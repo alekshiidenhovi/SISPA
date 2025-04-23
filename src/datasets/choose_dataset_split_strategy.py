@@ -1,24 +1,12 @@
 import typing as T
-from torch.utils.data import Dataset
+from common.types import DatasetSplitStrategy, DATASET_SPLIT_STRATEGY_FUNCTION
 from datasets.class_informed import create_class_informed_dataset_splits
 from datasets.equal import create_equal_distribution_dataset_splits
-from enum import Enum
 from datasets.dataset_split_params import (
     BaseDatasetSplitStrategyParams,
     ClassInformedDatasetSplitStrategyParams,
     EqualDatasetSplitStrategyParams,
 )
-
-SHARDED_DATASET_SPLITS = T.Tuple[T.List[T.List[int]], T.List[int], T.List[int]]
-DATASET_SPLIT_STRATEGY_FUNCTION = T.Callable[
-    [Dataset, T.Tuple[float, float, float], int, int],
-    SHARDED_DATASET_SPLITS,
-]
-
-
-class DatasetSplitStrategy(Enum):
-    CLASS_INFORMED = "class_informed"
-    EQUAL = "equal"
 
 
 def get_valid_params(

@@ -5,7 +5,7 @@ from collections import defaultdict
 from torch.utils.data import Subset
 from sklearn.model_selection import train_test_split
 from datasets.dataset_split_params import ClassInformedDatasetSplitStrategyParams
-from datasets.choose_dataset_split_strategy import SHARDED_DATASET_SPLITS
+from common.types import SHARDED_DATASET_SPLITS
 
 
 def create_class_informed_dataset_splits(
