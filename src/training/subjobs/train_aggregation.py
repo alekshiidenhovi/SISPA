@@ -17,7 +17,7 @@ def train_aggregation_classifier(
     prepared_training_embeddings_dataloader: DataLoader,
     prepared_validation_embeddings_dataloader: DataLoader,
     loss_fn: nn.Module,
-    val_batch_interval: int,
+    val_check_interval_percentage: float,
     epochs: int,
     experiment_group_name: str,
 ):
@@ -37,8 +37,8 @@ def train_aggregation_classifier(
             Prepared dataloader for the validation dataset of precomputed embeddings
         loss_fn : nn.Module
             Loss function
-        val_batch_interval : int
-            Interval for validation, the model is validated every `val_batch_interval` batches
+        val_check_interval_percentage : float
+            Percentage of training batches of an epoch after which to run validation
         epochs : int
             Number of epochs to train for
         experiment_group_name : str
@@ -52,6 +52,9 @@ def train_aggregation_classifier(
         experiment_group_name=experiment_group_name,
         experiment_name="Aggregator training",
         reinit=True,
+    )
+    val_check_interval = int(
+        val_check_interval_percentage * len(prepared_training_embeddings_dataloader)
     )
     prepared_aggregator.train()
     for epoch_idx in range(epochs):
@@ -88,7 +91,7 @@ def train_aggregation_classifier(
                     prepared_optimizer.step()
                     prepared_optimizer.zero_grad()
 
-            if (training_batch_idx + 1) % val_batch_interval == 0:
+            if (training_batch_idx + 1) % val_check_interval == 0:
                 validate_aggregation_training(
                     accelerator=accelerator,
                     prepared_aggregator=prepared_aggregator,

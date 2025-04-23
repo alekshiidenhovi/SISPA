@@ -18,7 +18,7 @@ def train_sharded_embedding_model(
     prepared_train_dataloader: DataLoader,
     prepared_val_dataloader: DataLoader,
     loss_fn: nn.Module,
-    val_batch_interval: int,
+    val_check_interval_percentage: float,
     epochs: int,
     shard_idx: int,
     experiment_group_name: str,
@@ -41,10 +41,12 @@ def train_sharded_embedding_model(
             Validation dataloader
         loss_fn : nn.Module
             Loss function
-        shard_idx : int
-            Index of the shard to train on
+        val_check_interval_percentage : float
+            Percentage of training batches of an epoch after which to run validation
         epochs : int
             Number of epochs to train for
+        shard_idx : int
+            Index of the shard to train on
         experiment_group_name : str
             Name of the experiment group
 
@@ -59,6 +61,9 @@ def train_sharded_embedding_model(
     )
     prepared_embedding_model.train()
     prepared_classifier.train()
+    val_batch_interval = int(
+        val_check_interval_percentage * len(prepared_train_dataloader)
+    )
     for epoch_idx in range(epochs):
         training_progress_bar = tqdm(prepared_train_dataloader)
         for training_batch_idx, (images, labels) in enumerate(training_progress_bar):
