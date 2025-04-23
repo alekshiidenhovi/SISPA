@@ -135,7 +135,7 @@ class OptimizerConfig(BaseModel):
         description="Beta2 parameter for the Adam optimizer, used for the second moment estimate",
     )
     optimizer_learning_rate: float = Field(
-        default=1e-5, ge=0, description="Learning rate of the model"
+        default=1e-4, ge=0, description="Learning rate of the model"
     )
 
 
