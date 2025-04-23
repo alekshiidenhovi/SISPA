@@ -79,8 +79,8 @@ def train_sharded_embedding_model(
                     )
                     embeddings = prepared_embedding_model(images)
                     outputs = prepared_classifier(embeddings)
-                    loss, num_predicted, num_correct = compute_prediction_statistics(
-                        loss_fn,
+                    loss = loss_fn(outputs, labels)
+                    num_predicted, num_correct = compute_prediction_statistics(
                         outputs,
                         labels,
                     )
@@ -182,8 +182,8 @@ def validate_shard_training(
             )
             embeddings = prepared_embedding_model(images)
             outputs = prepared_classifier(embeddings)
-            loss, num_predicted, num_correct = compute_prediction_statistics(
-                loss_fn,
+            loss = loss_fn(outputs, labels)
+            num_predicted, num_correct = compute_prediction_statistics(
                 outputs,
                 labels,
             )

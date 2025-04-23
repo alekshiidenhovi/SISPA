@@ -73,8 +73,8 @@ def train_aggregation_classifier(
                         f"Training aggregation classifier, epoch {epoch_idx + 1}/{epochs}, training batch {training_batch_idx + 1}/{len(prepared_training_embeddings_dataloader)}"
                     )
                     outputs = prepared_aggregator(embeddings)
-                    loss, num_predicted, num_correct = compute_prediction_statistics(
-                        loss_fn,
+                    loss = loss_fn(outputs, labels)
+                    num_predicted, num_correct = compute_prediction_statistics(
                         outputs,
                         labels,
                     )
@@ -164,8 +164,8 @@ def validate_aggregation_training(
                 f"Validating aggregation, epoch {epoch_idx + 1}/{epochs}, during training batch {training_batch_idx + 1}, validation batch {validation_batch_idx + 1}/{len(prepared_validation_embeddings_dataloader)}"
             )
             outputs = prepared_aggregator(embeddings)
-            loss, num_predicted, num_correct = compute_prediction_statistics(
-                loss_fn,
+            loss = loss_fn(outputs, labels)
+            num_predicted, num_correct = compute_prediction_statistics(
                 outputs,
                 labels,
             )
