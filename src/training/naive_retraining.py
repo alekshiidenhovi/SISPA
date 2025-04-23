@@ -404,6 +404,10 @@ def naive_retraining(**kwargs):
         torch.optim.AdamW(
             list(embedding_model.parameters()) + list(classifier.parameters()),
             lr=optimizer_config.optimizer_learning_rate,
+            betas=(
+                optimizer_config.optimizer_adam_beta1,
+                optimizer_config.optimizer_adam_beta2,
+            ),
             weight_decay=optimizer_config.optimizer_weight_decay,
         )
         for embedding_model, classifier in zip(untrained_embedding_models, classifiers)
@@ -418,6 +422,10 @@ def naive_retraining(**kwargs):
     aggregator_optimizer = torch.optim.AdamW(
         list(aggregator.parameters()),
         lr=optimizer_config.optimizer_learning_rate,
+        betas=(
+            optimizer_config.optimizer_adam_beta1,
+            optimizer_config.optimizer_adam_beta2,
+        ),
         weight_decay=optimizer_config.optimizer_weight_decay,
     )
 
