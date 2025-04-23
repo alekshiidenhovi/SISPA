@@ -2,6 +2,7 @@ import wandb
 import os
 import typing as T
 from dotenv import load_dotenv
+from common.types import AVAILABLE_DATASETS
 
 
 def init_wandb_api_client():
@@ -13,6 +14,7 @@ def init_wandb_api_client():
 
 
 def init_wandb_run(
+    dataset_name: AVAILABLE_DATASETS,
     experiment_name: T.Optional[str] = None,
     experiment_group_name: T.Optional[str] = None,
     reinit: bool = False,
@@ -25,7 +27,10 @@ def init_wandb_run(
     specified in the environment variables.
 
     Args:
+        dataset_name: Name of the dataset
         experiment_name: Optional name of the experiment to log
+        experiment_group_name: Optional name of the experiment group to log
+        reinit: Whether to reinitialize the run if it already exists
 
     Returns
     -------
@@ -48,7 +53,7 @@ def init_wandb_run(
     wandb.login(key=WANDB_API_KEY)
 
     run = wandb.init(
-        project=WANDB_PROJECT,
+        project=f"{WANDB_PROJECT}-{dataset_name}",
         entity=WANDB_ENTITY,
         group=experiment_group_name,
         job_type=experiment_name,

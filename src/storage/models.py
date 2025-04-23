@@ -5,6 +5,7 @@ import typing as T
 from pathlib import Path
 from safetensors.torch import load_file, save_file
 from common.tracking import init_wandb_run
+from common.types import AVAILABLE_DATASETS
 
 
 class SISPAModelStorage:
@@ -110,6 +111,7 @@ class SISPAModelStorage:
         sharded_model: torch.nn.Module,
         shard_id: str,
         experiment_group_name: str,
+        dataset_name: AVAILABLE_DATASETS,
     ) -> str:
         """
         Save a PyTorch model trained on a SISA shard to both local storage and W&B.
@@ -118,7 +120,7 @@ class SISPAModelStorage:
             sharded_model: The PyTorch model to save
             shard_id: Identifier for the SISA shard
             experiment_group_name: Name of the experiment group
-
+            dataset_name: Name of the dataset
         Returns:
             Path to the locally saved model file
         """
@@ -136,7 +138,9 @@ class SISPAModelStorage:
         )
         artifact.add_file(save_path)
         wandb_run = init_wandb_run(
-            experiment_group_name=experiment_group_name, reinit=False
+            dataset_name=dataset_name,
+            experiment_group_name=experiment_group_name,
+            reinit=False,
         )
         wandb_run.log_artifact(artifact)
 
@@ -241,6 +245,7 @@ class SISPAModelStorage:
         self,
         aggregator_model: torch.nn.Module,
         experiment_group_name: str,
+        dataset_name: AVAILABLE_DATASETS,
     ) -> str:
         """
         Save a PyTorch aggregator model to both local storage and W&B.
@@ -248,7 +253,7 @@ class SISPAModelStorage:
         Args:
             aggregator_model: The PyTorch aggregator model to save
             experiment_group_name: Name of the experiment group
-
+            dataset_name: Name of the dataset
         Returns:
             Path to the locally saved model file
         """
@@ -265,7 +270,9 @@ class SISPAModelStorage:
         )
         artifact.add_file(save_path)
         wandb_run = init_wandb_run(
-            experiment_group_name=experiment_group_name, reinit=False
+            dataset_name=dataset_name,
+            experiment_group_name=experiment_group_name,
+            reinit=False,
         )
         wandb_run.log_artifact(artifact)
 

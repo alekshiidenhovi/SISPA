@@ -8,6 +8,7 @@ from tqdm import tqdm
 from accelerate import Accelerator
 from training.subjobs.utils import compute_prediction_statistics
 from common.tracking import init_wandb_run
+from common.types import AVAILABLE_DATASETS
 
 
 def train_sharded_embedding_model(
@@ -22,6 +23,7 @@ def train_sharded_embedding_model(
     epochs: int,
     shard_idx: int,
     experiment_group_name: str,
+    dataset_name: AVAILABLE_DATASETS,
 ) -> nn.Module:
     """
     Train a model on a specific shard of data.
@@ -49,12 +51,15 @@ def train_sharded_embedding_model(
             Index of the shard to train on
         experiment_group_name : str
             Name of the experiment group
+        dataset_name : AVAILABLE_DATASETS
+            Name of the dataset
 
     Returns:
         nn.Module
             Trained embedding model on the CPU
     """
     wandb_run = init_wandb_run(
+        dataset_name=dataset_name,
         experiment_group_name=experiment_group_name,
         experiment_name=f"Shard {shard_idx} training",
         reinit=True,

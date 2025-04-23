@@ -12,6 +12,7 @@ from common.types import (
     TrainingStep,
     DATASET_SPLIT_STRATEGY_FUNCTION,
     DatasetSplitStrategy,
+    AVAILABLE_DATASETS,
 )
 from common.config import TrainingConfig
 from common.tracking import init_wandb_run
@@ -112,6 +113,7 @@ def train_shards_task(
     loss_fn: torch.nn.Module,
     epochs: int,
     experiment_group_name: str,
+    dataset_name: AVAILABLE_DATASETS,
 ):
     for shard_idx, (
         untrained_embedding_model,
@@ -142,6 +144,7 @@ def train_shards_task(
 
         trained_embedding_model = train_sharded_embedding_model(
             accelerator=accelerator,
+            dataset_name=dataset_name,
             prepared_embedding_model=prepared_embedding_model,
             prepared_classifier=prepared_classifier,
             prepared_optimizer=prepared_optimizer,
@@ -158,6 +161,7 @@ def train_shards_task(
             sharded_model=trained_embedding_model,
             shard_id=f"shard_{shard_idx}",
             experiment_group_name=experiment_group_name,
+            dataset_name=dataset_name,
         )
 
         (
@@ -276,6 +280,7 @@ def train_aggregator_task(
     epochs: int,
     model_storage: SISPAModelStorage,
     experiment_group_name: str,
+    dataset_name: AVAILABLE_DATASETS,
 ):
     (
         prepared_aggregator,
@@ -299,11 +304,13 @@ def train_aggregator_task(
         val_check_interval_percentage=val_check_interval_percentage,
         epochs=epochs,
         experiment_group_name=experiment_group_name,
+        dataset_name=dataset_name,
     )
 
     model_storage.save_aggregator_model(
         aggregator_model=trained_aggregator,
         experiment_group_name=experiment_group_name,
+        dataset_name=dataset_name,
     )
 
     (
@@ -367,6 +374,7 @@ def naive_retraining(**kwargs):
     experiment_group_name = f"naive-rt-{current_datetime}-{dataset_config.num_shards}_shards-{finetuning_config.epochs}_epochs-{model_config.backbone_embedding_dim}_embed_dim-{model_config.resnet_num_blocks}_num_blocks-{model_config.aggregator_hidden_dim}_hidden_dim-{optimizer_config.optimizer_learning_rate}_lr-{optimizer_config.optimizer_weight_decay}_wd"
 
     wandb_run = init_wandb_run(
+        dataset_name=dataset_config.dataset_name,
         experiment_group_name=experiment_group_name,
         experiment_name="Experiment config",
         reinit=False,
@@ -477,6 +485,7 @@ def naive_retraining(**kwargs):
         loss_fn=loss_fn,
         epochs=finetuning_config.epochs,
         experiment_group_name=experiment_group_name,
+        dataset_name=dataset_config.dataset_name,
     )
 
     precompute_embeddings_task(
@@ -508,6 +517,7 @@ def naive_retraining(**kwargs):
         epochs=finetuning_config.epochs,
         model_storage=model_storage,
         experiment_group_name=experiment_group_name,
+        dataset_name=dataset_config.dataset_name,
     )
 
 

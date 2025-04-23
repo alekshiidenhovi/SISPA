@@ -8,6 +8,7 @@ from accelerate import Accelerator
 from models.sispa.sispa_embedding_aggregator import SISPAEmbeddingAggregator
 from training.subjobs.utils import compute_prediction_statistics
 from common.tracking import init_wandb_run
+from common.types import AVAILABLE_DATASETS
 
 
 def train_aggregation_classifier(
@@ -20,6 +21,7 @@ def train_aggregation_classifier(
     val_check_interval_percentage: float,
     epochs: int,
     experiment_group_name: str,
+    dataset_name: AVAILABLE_DATASETS,
 ):
     """
     Train an aggregation classifier on precomputed embeddings from multiple shards.
@@ -43,12 +45,15 @@ def train_aggregation_classifier(
             Number of epochs to train for
         experiment_group_name : str
             Name of the experiment group
+        dataset_name : AVAILABLE_DATASETS
+            Name of the dataset
 
     Returns:
         nn.Module
             Trained embedding aggregator on the CPU
     """
     wandb_run = init_wandb_run(
+        dataset_name=dataset_name,
         experiment_group_name=experiment_group_name,
         experiment_name="Aggregator training",
         reinit=True,
