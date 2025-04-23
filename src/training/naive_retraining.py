@@ -372,7 +372,7 @@ def naive_retraining(**kwargs):
     finetuning_config = training_config.get_finetuning_config()
 
     current_datetime = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-    experiment_group_name = f"naive-rt-{current_datetime}-{dataset_config.num_shards}_shards-{finetuning_config.epochs}_epochs-{model_config.resnet_block_dims}_resnet_block_dims-{model_config.resnet_num_modules_per_block}_num_modules_per_block-{model_config.aggregator_hidden_dim}_hidden_dim-{optimizer_config.optimizer_learning_rate}_lr-{optimizer_config.optimizer_weight_decay}_wd"
+    experiment_group_name = f"naive-rt-{current_datetime}-{dataset_config.num_shards}_shards-{finetuning_config.epochs}_epochs-{model_config.resnet_block_dims}_rb_dims-{model_config.resnet_num_modules_per_block}_num_mod_block-{model_config.aggregator_hidden_dim}_hidden-{optimizer_config.optimizer_learning_rate}_lr-{optimizer_config.optimizer_weight_decay}_wd"
 
     wandb_run = init_wandb_run(
         dataset_name=dataset_config.dataset_name,
