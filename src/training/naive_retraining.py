@@ -26,6 +26,7 @@ from models.resnet import ResNet
 from models.sispa import (
     SISPAShardedEmbeddings,
     SISPAEmbeddingAggregator,
+    SISPAFramework,
 )
 from training.subjobs.precompute_embeddings import precompute_embeddings
 from training.subjobs.train_aggregation import train_aggregation_classifier
@@ -326,6 +327,15 @@ def train_aggregator_task(
         prepared_training_embeddings_dataloader,
         prepared_validation_embeddings_dataloader,
     )
+
+
+@task(cache_policy=NO_CACHE)
+def test_sispa_framework_task(
+    accelerator: Accelerator,
+    sispa_framework: SISPAFramework,
+    test_dataloader: DataLoader,
+):
+    pass
 
 
 @click.command()
