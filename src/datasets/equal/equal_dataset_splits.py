@@ -47,10 +47,7 @@ def create_equal_distribution_dataset_splits(
     )
 
     train_shard_indices = create_equal_distribution_shard_splits(
-        dataset=equal_params.dataset,
-        train_indices=train_indices,
-        num_shards=equal_params.num_shards,
-        seed=equal_params.seed,
+        equal_params, train_indices
     )
 
     return train_shard_indices, val_indices, test_indices
@@ -58,6 +55,7 @@ def create_equal_distribution_dataset_splits(
 
 def create_equal_distribution_shard_splits(
     equal_params: EqualDatasetSplitStrategyParams,
+    train_indices: T.List[int],
 ) -> T.List[T.List[int]]:
     """
     Creates balanced shards of a dataset where each shard has the same class distribution.
@@ -75,11 +73,11 @@ def create_equal_distribution_shard_splits(
     np.random.seed(equal_params.seed)
 
     original_indices_by_class = defaultdict(list)
-    subset_dataset = Subset(equal_params.dataset, equal_params.train_indices)
+    subset_dataset = Subset(equal_params.dataset, train_indices)
     shards = [[] for _ in range(equal_params.num_shards)]
 
     for subset_idx, (_, label) in enumerate(subset_dataset):
-        original_idx = equal_params.train_indices[subset_idx]
+        original_idx = train_indices[subset_idx]
         original_indices_by_class[label].append(original_idx)
 
     for label, original_class_indices in original_indices_by_class.items():
