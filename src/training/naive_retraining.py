@@ -31,6 +31,7 @@ from training.subjobs.train_aggregation import train_aggregation_classifier
 from training.subjobs.train_shard import train_sharded_embedding_model
 from training.subjobs.load_aggregation_dataloader import load_aggregation_dataloader
 from training.subjobs.collect_labels import collect_labels
+from training.utils import parse_int_list
 from storage.dataset_splits import SISPADatasetSplitsStorage
 from storage.embeddings import SISPAEmbeddingStorage
 from storage.models import SISPAModelStorage
@@ -339,8 +340,8 @@ def train_aggregator_task(
 )
 @click.option("--num-shards", type=int, default=None)
 @click.option("--class-informed-strategy-sampling-ratio", type=float, default=None)
-@click.option("--backbone-embedding-dim", type=int, default=None)
-@click.option("--resnet-num-blocks", type=int, default=None)
+@click.option("--resnet-block-dims", callback=parse_int_list, default=None)
+@click.option("--resnet-num-modules-per-block", type=int, default=None)
 @click.option("--aggregator-hidden-dim", type=int, default=None)
 @click.option("--accelerator", type=str, default=None)
 @click.option("--val-check-interval-percentage", type=float, default=None)

@@ -1,5 +1,7 @@
 import torch
 import torch.nn as nn
+import click
+import typing as T
 
 
 def compute_prediction_statistics(
@@ -35,3 +37,11 @@ def compute_prediction_statistics(
     num_predicted = labels.size(0)
     num_correct = (predicted == labels).sum().item()
     return loss, num_predicted, num_correct
+
+
+def parse_int_list(
+    ctx: click.Context, param: click.Option, value: T.Optional[str]
+) -> T.Optional[T.List[int]]:
+    if value is None:
+        return None
+    return [int(x.strip()) for x in value.split(",")]

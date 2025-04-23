@@ -6,7 +6,7 @@ from torch.utils.data import DataLoader
 from tqdm import tqdm
 from accelerate import Accelerator
 from models.sispa.sispa_embedding_aggregator import SISPAEmbeddingAggregator
-from training.subjobs.utils import compute_prediction_statistics
+from training.utils import compute_prediction_statistics
 from common.tracking import init_wandb_run
 from common.types import AVAILABLE_DATASETS
 
