@@ -1,7 +1,7 @@
 from pydantic import BaseModel, Field, field_validator
 import typing as T
 import multiprocessing
-from common.types import DatasetSplitStrategy
+from common.types import DatasetSplitStrategy, AVAILABLE_DATASETS
 from common.tracking import init_wandb_api_client
 
 ACCELERATOR = T.Literal["gpu", "cpu", "tpu"]
@@ -14,6 +14,10 @@ class DatasetConfig(BaseModel):
     dataset splits, and sampling configurations for training, validation and testing.
     """
 
+    dataset_name: AVAILABLE_DATASETS = Field(
+        default="cifar10",
+        description="Name of the dataset",
+    )
     train_batch_size: int = Field(
         default=64,
         ge=1,

@@ -6,7 +6,6 @@ import copy
 import datetime
 from accelerate import Accelerator
 from torch.utils.data import DataLoader, Subset, Dataset
-from torchvision import datasets, transforms
 from prefect import flow, task
 from prefect.cache_policies import NO_CACHE
 from common.types import (
@@ -16,6 +15,7 @@ from common.types import (
 )
 from common.config import TrainingConfig
 from common.tracking import init_wandb_run
+from datasets.choose_dataset import choose_dataset
 from datasets.choose_dataset_split_strategy import (
     choose_dataset_split_strategy,
     BaseDatasetSplitStrategyParams,
@@ -320,6 +320,7 @@ def train_aggregator_task(
 
 
 @click.command()
+@click.option("--dataset-name", type=str, default=None)
 @click.option("--train-batch-size", type=int, default=None)
 @click.option("--val-batch-size", type=int, default=None)
 @click.option("--test-batch-size", type=int, default=None)
@@ -384,20 +385,12 @@ def naive_retraining(**kwargs):
         embedding_dim=model_config.backbone_embedding_dim,
     )
 
-    transform = transforms.Compose(
-        [
-            transforms.ToTensor(),
-            transforms.Normalize((0.1307,), (0.3081,)),
-        ]
-    )
-    raw_dataset = datasets.MNIST(
-        root="data", train=True, download=True, transform=transform
-    )
-    num_classes = len(raw_dataset.targets.unique())
+    raw_dataset, num_channels, num_classes = choose_dataset(dataset_config.dataset_name)
 
     backbone_embedding_model = ResNet(
         num_blocks=model_config.resnet_num_blocks,
         embedding_dim=model_config.backbone_embedding_dim,
+        in_channels=num_channels,
     )
     backbone_classifier = torch.nn.Linear(
         model_config.backbone_embedding_dim, num_classes

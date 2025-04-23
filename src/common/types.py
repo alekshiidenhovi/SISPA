@@ -20,6 +20,8 @@ DATASET_SPLIT_STRATEGY_FUNCTION = T.Callable[
     SHARDED_DATASET_SPLITS,
 ]
 
+AVAILABLE_DATASETS = T.Literal["cifar100", "cifar10", "mnist"]
+
 
 class DatasetSplitStrategy(Enum):
     CLASS_INFORMED = "class_informed"
