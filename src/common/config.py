@@ -71,11 +71,12 @@ class DatasetConfig(BaseModel):
 class ModelConfig(BaseModel):
     """Configuration for the model architecture."""
 
-    backbone_embedding_dim: int = Field(
-        default=64, ge=1, description="Embedding dimension of the backbone model"
+    resnet_block_dims: T.List[int] = Field(
+        default=[32, 64, 128, 256],
+        description="Dimensions of the Resnet blocks",
     )
-    resnet_num_blocks: int = Field(
-        default=3, ge=1, description="Number of blocks in the Resnet backbone model"
+    resnet_num_modules_per_block: int = Field(
+        default=3, ge=1, description="Number of modules in each Resnet block"
     )
     aggregator_hidden_dim: int = Field(
         default=128, ge=1, description="Hidden dimension of the aggregation model"

@@ -371,7 +371,7 @@ def naive_retraining(**kwargs):
     finetuning_config = training_config.get_finetuning_config()
 
     current_datetime = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-    experiment_group_name = f"naive-rt-{current_datetime}-{dataset_config.num_shards}_shards-{finetuning_config.epochs}_epochs-{model_config.backbone_embedding_dim}_embed_dim-{model_config.resnet_num_blocks}_num_blocks-{model_config.aggregator_hidden_dim}_hidden_dim-{optimizer_config.optimizer_learning_rate}_lr-{optimizer_config.optimizer_weight_decay}_wd"
+    experiment_group_name = f"naive-rt-{current_datetime}-{dataset_config.num_shards}_shards-{finetuning_config.epochs}_epochs-{model_config.resnet_block_dims}_resnet_block_dims-{model_config.resnet_num_modules_per_block}_num_modules_per_block-{model_config.aggregator_hidden_dim}_hidden_dim-{optimizer_config.optimizer_learning_rate}_lr-{optimizer_config.optimizer_weight_decay}_wd"
 
     wandb_run = init_wandb_run(
         dataset_name=dataset_config.dataset_name,
@@ -388,21 +388,21 @@ def naive_retraining(**kwargs):
     dataset_splits_storage = SISPADatasetSplitsStorage(
         storage_path=training_config.storage_path
     )
+
+    embedding_dim = model_config.resnet_block_dims[-1]
     embedding_storage = SISPAEmbeddingStorage(
         storage_path=training_config.storage_path,
-        embedding_dim=model_config.backbone_embedding_dim,
+        embedding_dim=embedding_dim,
     )
 
     raw_dataset, num_channels, num_classes = choose_dataset(dataset_config.dataset_name)
 
     backbone_embedding_model = ResNet(
-        num_blocks=model_config.resnet_num_blocks,
-        embedding_dim=model_config.backbone_embedding_dim,
+        num_modules_per_block=model_config.resnet_num_modules_per_block,
+        block_dims=model_config.resnet_block_dims,
         in_channels=num_channels,
     )
-    backbone_classifier = torch.nn.Linear(
-        model_config.backbone_embedding_dim, num_classes
-    )
+    backbone_classifier = torch.nn.Linear(embedding_dim, num_classes)
     untrained_embedding_models = [
         copy.deepcopy(backbone_embedding_model)
         for _ in range(dataset_config.num_shards)
@@ -425,7 +425,7 @@ def naive_retraining(**kwargs):
     ]
 
     aggregator = SISPAEmbeddingAggregator(
-        embedding_dim=model_config.backbone_embedding_dim,
+        embedding_dim=embedding_dim,
         hidden_dim=model_config.aggregator_hidden_dim,
         num_shards=dataset_config.num_shards,
         num_classes=num_classes,
