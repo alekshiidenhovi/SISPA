@@ -364,7 +364,9 @@ def naive_retraining(**kwargs):
     current_datetime = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
     experiment_group_name = f"naive-rt-{current_datetime}-{dataset_config.num_shards}_shards-{finetuning_config.epochs}_epochs-{model_config.backbone_embedding_dim}_embed_dim-{model_config.resnet_num_blocks}_num_blocks-{model_config.aggregator_hidden_dim}_hidden_dim-{optimizer_config.optimizer_learning_rate}_lr-{optimizer_config.optimizer_weight_decay}_wd"
 
-    accelerator = Accelerator()
+    accelerator = Accelerator(
+        gradient_accumulation_steps=training_config.accumulate_grad_batches
+    )
     model_storage = SISPAModelStorage(storage_path=training_config.storage_path)
     dataset_splits_storage = SISPADatasetSplitsStorage(
         storage_path=training_config.storage_path
