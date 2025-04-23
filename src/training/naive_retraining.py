@@ -33,6 +33,7 @@ from training.subjobs.train_aggregation import train_aggregation_classifier
 from training.subjobs.train_shard import train_sharded_embedding_model
 from training.subjobs.load_aggregation_dataloader import load_aggregation_dataloader
 from training.subjobs.collect_labels import collect_labels
+from training.subjobs.test_sispa_framework import test_sispa_framework
 from training.utils import parse_int_list
 from storage.dataset_splits import SISPADatasetSplitsStorage
 from storage.embeddings import SISPAEmbeddingStorage
@@ -332,10 +333,38 @@ def train_aggregator_task(
 @task(cache_policy=NO_CACHE)
 def test_sispa_framework_task(
     accelerator: Accelerator,
-    sispa_framework: SISPAFramework,
+    embedding_model: torch.nn.Module,
+    aggregator_model: torch.nn.Module,
+    model_storage: SISPAModelStorage,
     test_dataloader: DataLoader,
+    num_shards: int,
+    epochs: int,
+    experiment_group_name: str,
+    dataset_name: AVAILABLE_DATASETS,
 ):
-    pass
+    sispa_sharded_models = [
+        model_storage.load_sharded_model_local(
+            sharded_model=embedding_model,
+            shard_id=f"shard_{shard_idx}",
+        )
+        for shard_idx in range(num_shards)
+    ]
+    sispa_sharded_models = SISPAShardedEmbeddings(sispa_sharded_models)
+    sispa_aggregator_model = model_storage.load_aggregator_model_local(
+        aggregator_model=aggregator_model,
+    )
+    sispa_framework = SISPAFramework(
+        sispa_sharded_models,
+        sispa_aggregator_model,
+    )
+    test_sispa_framework(
+        accelerator=accelerator,
+        sispa_framework=sispa_framework,
+        test_dataloader=test_dataloader,
+        epochs=epochs,
+        experiment_group_name=experiment_group_name,
+        dataset_name=dataset_name,
+    )
 
 
 @click.command()
@@ -383,7 +412,16 @@ def naive_retraining(**kwargs):
     finetuning_config = training_config.get_finetuning_config()
 
     current_datetime = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-    experiment_group_name = f"naive-rt-{current_datetime}-{dataset_config.num_shards}_shards-{finetuning_config.epochs}_epochs-{model_config.resnet_block_dims}_rb_dims-{model_config.resnet_num_modules_per_block}_num_mod_block-{model_config.aggregator_hidden_dim}_hidden-{optimizer_config.optimizer_learning_rate}_lr-{optimizer_config.optimizer_weight_decay}_wd"
+    experiment_group_name = f"naive-rt-{current_datetime}-{finetuning_config.epochs}_epochs-{model_config.resnet_block_dims}_rb_dims-{model_config.resnet_num_modules_per_block}_num_mod_block-{model_config.aggregator_hidden_dim}_hidden-{optimizer_config.optimizer_learning_rate}_lr-{optimizer_config.optimizer_weight_decay}_wd-{dataset_config.dataset_split_strategy}"
+
+    try:
+        dataset_split_strategy_enum = DatasetSplitStrategy(
+            dataset_config.dataset_split_strategy
+        )
+    except ValueError:
+        raise ValueError(
+            f"Invalid dataset split strategy: {dataset_config.dataset_split_strategy}"
+        )
 
     wandb_run = init_wandb_run(
         dataset_name=dataset_config.dataset_name,
@@ -452,15 +490,6 @@ def naive_retraining(**kwargs):
         weight_decay=optimizer_config.optimizer_weight_decay,
     )
 
-    try:
-        dataset_split_strategy_enum = DatasetSplitStrategy(
-            dataset_config.dataset_split_strategy
-        )
-    except ValueError:
-        raise ValueError(
-            f"Invalid dataset split strategy: {dataset_config.dataset_split_strategy}"
-        )
-
     dataset_split_strategy_function, dataset_split_strategy_params = (
         choose_dataset_split_strategy(
             dataset_split_strategy_enum,
@@ -528,6 +557,18 @@ def naive_retraining(**kwargs):
         val_check_interval_percentage=finetuning_config.val_check_interval_percentage,
         epochs=finetuning_config.epochs,
         model_storage=model_storage,
+        experiment_group_name=experiment_group_name,
+        dataset_name=dataset_config.dataset_name,
+    )
+
+    test_sispa_framework_task(
+        accelerator=accelerator,
+        embedding_model=backbone_embedding_model,
+        aggregator_model=aggregator,
+        model_storage=model_storage,
+        test_dataloader=test_dataloader,
+        num_shards=dataset_config.num_shards,
+        epochs=finetuning_config.epochs,
         experiment_group_name=experiment_group_name,
         dataset_name=dataset_config.dataset_name,
     )
