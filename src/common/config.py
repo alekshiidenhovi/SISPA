@@ -1,10 +1,8 @@
 from pydantic import BaseModel, Field, field_validator
 import typing as T
 import multiprocessing
-from common.types import DatasetSplitStrategy, AVAILABLE_DATASETS
+from common.types import DatasetSplitStrategy, AVAILABLE_DATASETS, ACCELERATOR
 from common.tracking import init_wandb_api_client
-
-ACCELERATOR = T.Literal["gpu", "cpu", "tpu"]
 
 
 class DatasetConfig(BaseModel):

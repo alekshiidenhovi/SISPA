@@ -19,8 +19,8 @@ DATASET_SPLIT_STRATEGY_FUNCTION = T.Callable[
     [Dataset, T.Tuple[float, float, float], int, int],
     SHARDED_DATASET_SPLITS,
 ]
-
 AVAILABLE_DATASETS = T.Literal["cifar100", "cifar10", "mnist"]
+ACCELERATOR = T.Literal["gpu", "cpu"]
 
 
 class DatasetSplitStrategy(Enum):

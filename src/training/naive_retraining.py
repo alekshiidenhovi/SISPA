@@ -13,6 +13,7 @@ from common.types import (
     DATASET_SPLIT_STRATEGY_FUNCTION,
     DatasetSplitStrategy,
     AVAILABLE_DATASETS,
+    ACCELERATOR,
 )
 from common.config import TrainingConfig
 from common.tracking import init_wandb_run
@@ -343,7 +344,7 @@ def train_aggregator_task(
 @click.option("--resnet-block-dims", callback=parse_int_list, default=None)
 @click.option("--resnet-num-modules-per-block", type=int, default=None)
 @click.option("--aggregator-hidden-dim", type=int, default=None)
-@click.option("--accelerator", type=str, default=None)
+@click.option("--accelerator", type=ACCELERATOR, default=None)
 @click.option("--val-check-interval-percentage", type=float, default=None)
 @click.option("--epochs", type=int, default=None)
 @click.option("--devices", type=T.List[int], default=None)
