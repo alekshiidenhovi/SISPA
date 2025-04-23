@@ -15,6 +15,7 @@ from common.types import (
     DatasetSplitStrategy,
 )
 from common.config import TrainingConfig
+from common.tracking import init_wandb_run
 from datasets.choose_dataset_split_strategy import (
     choose_dataset_split_strategy,
     BaseDatasetSplitStrategyParams,
@@ -363,6 +364,12 @@ def naive_retraining(**kwargs):
 
     current_datetime = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
     experiment_group_name = f"naive-rt-{current_datetime}-{dataset_config.num_shards}_shards-{finetuning_config.epochs}_epochs-{model_config.backbone_embedding_dim}_embed_dim-{model_config.resnet_num_blocks}_num_blocks-{model_config.aggregator_hidden_dim}_hidden_dim-{optimizer_config.optimizer_learning_rate}_lr-{optimizer_config.optimizer_weight_decay}_wd"
+
+    wandb_run = init_wandb_run(
+        experiment_group_name=experiment_group_name,
+        reinit=False,
+    )
+    wandb_run.config.update(training_config.model_dump())
 
     accelerator = Accelerator(
         gradient_accumulation_steps=training_config.accumulate_grad_batches
