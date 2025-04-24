@@ -338,7 +338,6 @@ def test_sispa_framework_task(
     model_storage: SISPAModelStorage,
     test_dataloader: DataLoader,
     num_shards: int,
-    epochs: int,
     experiment_group_name: str,
     dataset_name: AVAILABLE_DATASETS,
 ):
@@ -370,7 +369,6 @@ def test_sispa_framework_task(
         accelerator=accelerator,
         prepared_sispa_framework=prepared_sispa_framework,
         prepared_test_dataloader=prepared_test_dataloader,
-        epochs=epochs,
         experiment_group_name=experiment_group_name,
         dataset_name=dataset_name,
     )
@@ -585,7 +583,6 @@ def naive_retraining(**kwargs):
         model_storage=model_storage,
         test_dataloader=test_dataloader,
         num_shards=dataset_config.num_shards,
-        epochs=finetuning_config.epochs,
         experiment_group_name=experiment_group_name,
         dataset_name=dataset_config.dataset_name,
     )

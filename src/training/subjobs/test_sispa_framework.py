@@ -10,7 +10,6 @@ def test_sispa_framework(
     accelerator: ACCELERATOR,
     prepared_sispa_framework: SISPAFramework,
     prepared_test_dataloader: DataLoader,
-    epochs: int,
     experiment_group_name: str,
     dataset_name: AVAILABLE_DATASETS,
 ) -> None:
@@ -24,8 +23,6 @@ def test_sispa_framework(
             Prepared SISPA framework
         prepared_test_dataloader : DataLoader
             Test dataloader
-        epochs : int
-            Number of epochs to train for
         experiment_group_name : str
             Name of the experiment group
         dataset_name : AVAILABLE_DATASETS
@@ -40,26 +37,26 @@ def test_sispa_framework(
     prepared_sispa_framework.eval()
     total_test_predicted = 0
     total_test_correct = 0
-    for epoch_idx in range(epochs):
-        test_progress_bar = tqdm(prepared_test_dataloader)
-        for test_batch_idx, (images, labels) in enumerate(test_progress_bar):
-            with accelerator.autocast():
-                test_progress_bar.set_description(
-                    f"Testing SISPA framework, epoch {epoch_idx + 1}/{epochs}, testing batch {test_batch_idx + 1}/{len(prepared_test_dataloader)}"
-                )
-                outputs = prepared_sispa_framework(images)
-                num_predicted, num_correct = compute_prediction_statistics(
-                    outputs,
-                    labels,
-                )
-                total_test_predicted += num_predicted
-                total_test_correct += num_correct
 
-                test_progress_bar.set_postfix(
-                    {
-                        "testing_accuracy": total_test_correct / total_test_predicted,
-                    }
-                )
+    test_progress_bar = tqdm(prepared_test_dataloader)
+    for test_batch_idx, (images, labels) in enumerate(test_progress_bar):
+        with accelerator.autocast():
+            test_progress_bar.set_description(
+                f"Testing SISPA framework, testing batch {test_batch_idx + 1}/{len(prepared_test_dataloader)}"
+            )
+            outputs = prepared_sispa_framework(images)
+            num_predicted, num_correct = compute_prediction_statistics(
+                outputs,
+                labels,
+            )
+            total_test_predicted += num_predicted
+            total_test_correct += num_correct
+
+            test_progress_bar.set_postfix(
+                {
+                    "testing_accuracy": total_test_correct / total_test_predicted,
+                }
+            )
 
     test_accuracy = (
         100 * total_test_correct / total_test_predicted
