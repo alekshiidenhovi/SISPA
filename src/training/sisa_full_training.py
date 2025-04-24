@@ -337,8 +337,6 @@ def sisa_full_training(**kwargs):
         trained_embedding_models=trained_embedding_models,
         trained_classifiers=trained_classifiers,
         test_dataloader=test_dataloader,
-        num_shards=dataset_config.num_shards,
-        epochs=finetuning_config.epochs,
         experiment_group_name=experiment_group_name,
         dataset_name=dataset_config.dataset_name,
     )
