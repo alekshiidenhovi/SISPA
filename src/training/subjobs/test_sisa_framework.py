@@ -62,6 +62,8 @@ def test_sisa_framework(
             class_predictions = majority_vote_class_indices(
                 shard_pred_probabilities, device=accelerator.device
             )
+            print(f"class_predictions.shape: {class_predictions.shape}")
+            print(f"labels.shape: {labels.shape}")
             num_predicted, num_correct = compute_prediction_statistics(
                 class_predictions,
                 labels,
