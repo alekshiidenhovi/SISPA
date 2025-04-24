@@ -17,7 +17,7 @@ def majority_vote_class_indices(
     Returns
     -------
     torch.Tensor
-        Majority voted class indices predictions, tensor of shape (batch_size, 1)
+        Majority voted class indices predictions, tensor of shape (batch_size,)
     """
     batch_size, num_classes = shard_pred_probabilities[0].shape
     shard_class_predictions = [
@@ -38,7 +38,7 @@ def majority_vote_class_indices(
         majority_class = torch.argmax(class_counts)
         final_preds.append(majority_class)
 
-    return torch.tensor(final_preds, device=device).view(-1, 1)
+    return torch.tensor(final_preds, device=device)
 
 
 def compute_prediction_statistics(
@@ -51,9 +51,9 @@ def compute_prediction_statistics(
     Parameters
     ----------
     class_predictions : torch.Tensor
-        Predicted class indices for each class, shape (batch_size, 1)
+        Predicted class indices for each class, shape (batch_size,)
     labels : torch.Tensor
-        Ground truth labels, shape (batch_size, 1)
+        Ground truth labels, shape (batch_size,)
 
     Returns
     -------
