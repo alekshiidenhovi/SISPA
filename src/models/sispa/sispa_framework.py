@@ -39,5 +39,6 @@ class SISPAFramework(nn.Module):
             Logits tensor of shape (batch_size, num_classes)
         """
         embeddings = [model(x) for model in self.sispa_sharded_embeddings]
-        concated_embeddings = torch.cat(embeddings, dim=1)
-        return self.sispa_embedding_aggregator(concated_embeddings)
+        concatenated_embeddings = torch.cat(embeddings, dim=1)
+        aggregated_embeddings = self.sispa_embedding_aggregator(concatenated_embeddings)
+        return aggregated_embeddings
