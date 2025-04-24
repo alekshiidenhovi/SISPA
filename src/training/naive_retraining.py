@@ -22,7 +22,7 @@ from datasets.choose_dataset_split_strategy import (
     choose_dataset_split_strategy,
     BaseDatasetSplitStrategyParams,
 )
-from models.resnet import ResNet
+from models.resnet import ResNetEmbedding
 from models.sispa import (
     SISPAShardedEmbeddings,
     SISPAEmbeddingAggregator,
@@ -464,7 +464,7 @@ def naive_retraining(**kwargs):
 
     raw_dataset, num_channels, num_classes = choose_dataset(dataset_config.dataset_name)
 
-    backbone_embedding_model = ResNet(
+    backbone_embedding_model = ResNetEmbedding(
         num_modules_per_block=model_config.resnet_num_modules_per_block,
         block_dims=model_config.resnet_block_dims,
         in_channels=num_channels,

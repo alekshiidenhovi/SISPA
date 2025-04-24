@@ -1,3 +1,3 @@
-from models.resnet.resnet import ResNet
+from models.resnet.resnet import ResNetEmbedding
 
-__all__ = ["ResNet"]
+__all__ = ["ResNetEmbedding"]

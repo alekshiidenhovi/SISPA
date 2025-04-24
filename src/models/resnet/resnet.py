@@ -5,7 +5,7 @@ from models.resnet.conv_7 import Conv7
 from einops import rearrange
 
 
-class ResNet(torch.nn.Module):
+class ResNetEmbedding(torch.nn.Module):
     """ResNet backbone model.
 
     Contains a series of Resnet blocks, each with a number of modules.
@@ -54,7 +54,6 @@ class ResNet(torch.nn.Module):
             )
 
         self.avg_pool = torch.nn.AdaptiveAvgPool2d(1)
-        self.linear = torch.nn.Linear(block_dims[-1], block_dims[-1])
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         out = self.conv7(x)
@@ -65,5 +64,4 @@ class ResNet(torch.nn.Module):
             out,
             "batch_size channels height width -> batch_size (channels height width)",
         )
-        out = self.linear(out)
         return out
