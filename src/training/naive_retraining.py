@@ -146,7 +146,7 @@ def train_shards_task(
             val_dataloader,
         )
 
-        trained_embedding_model = train_sharded_embedding_model(
+        trained_embedding_model, _ = train_sharded_embedding_model(
             accelerator=accelerator,
             dataset_name=dataset_name,
             prepared_embedding_model=prepared_embedding_model,

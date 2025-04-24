@@ -3,6 +3,7 @@ import torch.nn as nn
 import torch.optim as optim
 import wandb
 import wandb.wandb_run
+import typing as T
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 from accelerate import Accelerator
@@ -24,7 +25,7 @@ def train_sharded_embedding_model(
     shard_idx: int,
     experiment_group_name: str,
     dataset_name: AVAILABLE_DATASETS,
-) -> nn.Module:
+) -> T.Tuple[nn.Module, nn.Module]:
     """
     Train a model on a specific shard of data.
 
@@ -55,8 +56,8 @@ def train_sharded_embedding_model(
             Name of the dataset
 
     Returns:
-        nn.Module
-            Trained embedding model on the CPU
+        Tuple[nn.Module, nn.Module]
+            Trained embedding model and classifier on the CPU
     """
     wandb_run = init_wandb_run(
         dataset_name=dataset_name,
@@ -121,7 +122,10 @@ def train_sharded_embedding_model(
                 prepared_embedding_model.train()
                 prepared_classifier.train()
 
-    return accelerator.unwrap_model(prepared_embedding_model).cpu()
+    return (
+        accelerator.unwrap_model(prepared_embedding_model).cpu(),
+        accelerator.unwrap_model(prepared_classifier).cpu(),
+    )
 
 
 @torch.no_grad()
