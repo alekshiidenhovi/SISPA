@@ -415,7 +415,7 @@ def test_sispa_framework_task(
     default=None,
 )
 @flow
-def naive_retraining(**kwargs):
+def sispa_full_training(**kwargs):
     valid_fields = set(TrainingConfig.model_fields.keys())
     config_kwargs = {
         k: v for k, v in kwargs.items() if v is not None and k in valid_fields
@@ -427,7 +427,7 @@ def naive_retraining(**kwargs):
     finetuning_config = training_config.get_finetuning_config()
 
     current_datetime = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-    experiment_group_name = f"naive-rt-{current_datetime}-{finetuning_config.epochs}_epochs-{model_config.resnet_block_dims}_rb_dims-{model_config.resnet_num_modules_per_block}_num_mod_block-{model_config.aggregator_hidden_dim}_hidden-{optimizer_config.optimizer_learning_rate}_lr-{optimizer_config.optimizer_weight_decay}_wd-{dataset_config.dataset_split_strategy}"
+    experiment_group_name = f"sispa_full-{current_datetime}-{finetuning_config.epochs}_epochs-{model_config.resnet_block_dims}_rb_dims-{model_config.resnet_num_modules_per_block}_num_mod_block-{model_config.aggregator_hidden_dim}_hidden-{optimizer_config.optimizer_learning_rate}_lr-{optimizer_config.optimizer_weight_decay}_wd-{dataset_config.dataset_split_strategy}"
 
     try:
         dataset_split_strategy_enum = DatasetSplitStrategy(
@@ -589,4 +589,4 @@ def naive_retraining(**kwargs):
 
 
 if __name__ == "__main__":
-    naive_retraining()
+    sispa_full_training()
