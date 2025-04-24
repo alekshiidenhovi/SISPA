@@ -74,8 +74,9 @@ def train_aggregation_classifier(
                     )
                     outputs = prepared_aggregator(embeddings)
                     loss = loss_fn(outputs, labels)
+                    class_predictions = torch.argmax(outputs, dim=1)
                     num_predicted, num_correct = compute_prediction_statistics(
-                        outputs,
+                        class_predictions,
                         labels,
                     )
 
@@ -165,8 +166,9 @@ def validate_aggregation_training(
             )
             outputs = prepared_aggregator(embeddings)
             loss = loss_fn(outputs, labels)
+            class_predictions = torch.argmax(outputs, dim=1)
             num_predicted, num_correct = compute_prediction_statistics(
-                outputs,
+                class_predictions,
                 labels,
             )
 

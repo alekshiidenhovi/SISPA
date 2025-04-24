@@ -1,3 +1,4 @@
+import torch
 from common.tracking import init_wandb_run
 from common.types import ACCELERATOR, AVAILABLE_DATASETS
 from models.sispa import SISPAFramework
@@ -45,8 +46,9 @@ def test_sispa_framework(
                 f"Testing SISPA framework, testing batch {test_batch_idx + 1}/{len(prepared_test_dataloader)}"
             )
             outputs = prepared_sispa_framework(images)
+            class_predictions = torch.argmax(outputs, dim=1)
             num_predicted, num_correct = compute_prediction_statistics(
-                outputs,
+                class_predictions,
                 labels,
             )
             total_test_predicted += num_predicted

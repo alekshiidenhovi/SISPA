@@ -81,8 +81,9 @@ def train_sharded_embedding_model(
                     embeddings = prepared_embedding_model(images)
                     outputs = prepared_classifier(embeddings)
                     loss = loss_fn(outputs, labels)
+                    class_predictions = torch.argmax(outputs, dim=1)
                     num_predicted, num_correct = compute_prediction_statistics(
-                        outputs,
+                        class_predictions,
                         labels,
                     )
 
@@ -187,8 +188,9 @@ def validate_shard_training(
             embeddings = prepared_embedding_model(images)
             outputs = prepared_classifier(embeddings)
             loss = loss_fn(outputs, labels)
+            class_predictions = torch.argmax(outputs, dim=1)
             num_predicted, num_correct = compute_prediction_statistics(
-                outputs,
+                class_predictions,
                 labels,
             )
             total_validation_loss += loss.item()
