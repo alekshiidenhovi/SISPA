@@ -24,7 +24,7 @@ def majority_vote_class_indices(
         torch.argmax(shard_probability, dim=1)
         for shard_probability in shard_pred_probabilities
     ]  # shape (num_shards, batch_size)
-    shard_class_predictions = torch.tensor(shard_class_predictions, device=device)
+    shard_class_predictions = torch.stack(shard_class_predictions, dim=0).to(device)
     shard_class_predictions = shard_class_predictions.transpose(
         0, 1
     )  # shape (batch_size, num_shards)
