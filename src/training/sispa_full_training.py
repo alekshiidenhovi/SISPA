@@ -161,8 +161,12 @@ def train_shards_task(
             experiment_group_name=experiment_group_name,
         )
 
+        cpu_trained_embedding_model = accelerator.unwrap_model(
+            trained_embedding_model
+        ).cpu()
+
         model_storage.save_sharded_model(
-            sharded_model=trained_embedding_model,
+            sharded_model=cpu_trained_embedding_model,
             shard_id=f"shard_{shard_idx}",
             experiment_group_name=experiment_group_name,
             dataset_name=dataset_name,
@@ -311,8 +315,10 @@ def train_aggregator_task(
         dataset_name=dataset_name,
     )
 
+    cpu_trained_aggregator = accelerator.unwrap_model(trained_aggregator).cpu()
+
     model_storage.save_aggregator_model(
-        aggregator_model=trained_aggregator,
+        aggregator_model=cpu_trained_aggregator,
         experiment_group_name=experiment_group_name,
         dataset_name=dataset_name,
     )

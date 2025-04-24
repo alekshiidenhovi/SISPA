@@ -57,7 +57,7 @@ def train_sharded_embedding_model(
 
     Returns:
         Tuple[nn.Module, nn.Module]
-            Trained embedding model and classifier on the CPU
+            Trained embedding model and classifier
     """
     wandb_run = init_wandb_run(
         dataset_name=dataset_name,
@@ -123,10 +123,7 @@ def train_sharded_embedding_model(
                 prepared_embedding_model.train()
                 prepared_classifier.train()
 
-    return (
-        accelerator.unwrap_model(prepared_embedding_model).cpu(),
-        accelerator.unwrap_model(prepared_classifier).cpu(),
-    )
+    return prepared_embedding_model, prepared_classifier
 
 
 @torch.no_grad()

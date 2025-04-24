@@ -50,7 +50,7 @@ def train_aggregation_classifier(
 
     Returns:
         nn.Module
-            Trained embedding aggregator on the CPU
+            Trained embedding aggregator
     """
     wandb_run = init_wandb_run(
         dataset_name=dataset_name,
@@ -110,7 +110,7 @@ def train_aggregation_classifier(
                 )
                 prepared_aggregator.train()
 
-    return accelerator.unwrap_model(prepared_aggregator).cpu()
+    return prepared_aggregator
 
 
 @torch.no_grad()
